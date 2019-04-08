@@ -79,9 +79,11 @@ class subDenseNet(nn.Module):
         if(transition>0):
             assert transition==0.5, "transition has to be 0.5 for debug"
             self.transitionLayer = transitionLayer(fNum+growthRate*(layer-2), transition, activ = activation)
-            self.outConv = nn.Conv2d(int((fNum+growthRate*(layer-2))*transition), inChannel, 3, padding = 1)
+            #self.outConv = nn.Conv2d(int((fNum+growthRate*(layer-2))*transition), inChannel, 3, padding = 1)
+            self.outConv = convLayer(int((fNum+growthRate*(layer-2))*transition), inChannel, activ = activation)
         else:
-            self.outConv = nn.Conv2d(fNum+growthRate*(layer-2), inChannel, 3, padding = 1)
+            #self.outConv = nn.Conv2d(fNum+growthRate*(layer-2), inChannel, 3, padding = 1)
+            self.outConv = convLayer(fNum+growthRate*(layer-2), inChannel, activ = activation)
 
     def forward(self,x):
         x2 = self.inConv(x)

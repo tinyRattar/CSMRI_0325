@@ -189,6 +189,23 @@ class transitionLayer(nn.Module):
         y = self.conv(x2)
         
         return y
+
+class convLayer(nn.Module):
+    def __init__(self, inChannel = 64, outChannel = 64, activ = 'ReLU'):
+        super(transitionLayer, self).__init__()
+        self.bn = nn.BatchNorm2d(inChannel)
+        if(activ == 'LeakyReLU'):
+            self.relu = nn.LeakyReLU()
+        else:
+            self.relu = nn.ReLU()
+        self.conv = nn.Conv2d(inChannel,outChannel,1)
+        
+    def forward(self,x):
+        x1 = self.bn(x)
+        x2 = self.relu(x1)
+        y = self.conv(x2)
+        
+        return y
     
 class dataConsistencyLayer(nn.Module):
     def __init__(self, initLamda = 1, isStatic = False):

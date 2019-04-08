@@ -44,7 +44,7 @@ class RDN_recursionUnit(nn.Module):
             xt = x3+x2 # x_t+1
         x4 = self.conv2(xt)
         x4 = self.LRelu(x4)
-        x5 = x4+x1[:,0:1]
+        x5 = x4+x1
         
         return x5
     

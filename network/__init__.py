@@ -98,10 +98,6 @@ def getNet(netType):
         return CN_Dense(2,c=5,dilate=False, useOri = True, transition=0.5, trick = 2)
     elif(netType == 'CN_Ori_c5_complex_tr_trick4'):
         return CN_Dense(2,c=5,dilate=False, useOri = True, transition=0.5, trick = 4)
-    elif(netType == 'CN_dOri_c5_complex'): # same with 'CN_DD_c5_complex_ori'
-        return CN_Dense(2,c=5,dilate=True, useOri = True)
-    elif(netType == 'CN_dOri_c5_complex_tr'): 
-        return CN_Dense(2,c=5,dilate=True, useOri = True, transition=0.5)
     elif(netType == 'CN_Ori_c5_complex_f32'):
         return CN_Dense(2,c=5,dilate=False, fNum = 32, useOri = True)
     elif(netType == 'CN_Ori_c5_complex_f32_tr'):
@@ -110,6 +106,13 @@ def getNet(netType):
         return CN_Dense(2,c=5,dilate=False, fNum = 32, growthRate = 32, useOri = True)
     elif(netType == 'CN_Ori_c5_complex_fg32_tr'):
         return CN_Dense(2,c=5,dilate=False, fNum = 32, growthRate = 32, useOri = True, transition=0.5)
+    #-----------dOri-----------
+    elif(netType == 'CN_dOri_c5_complex'): # same with 'CN_DD_c5_complex_ori'
+        return CN_Dense(2,c=5,dilate=True, useOri = True)
+    elif(netType == 'CN_dOri_c5_complex_tr'): 
+        return CN_Dense(2,c=5,dilate=True, useOri = True, transition=0.5)
+    elif(netType == 'CN_dOri_c5_complex_tr_trick4'): 
+        return CN_Dense(2,c=5,dilate=True, useOri = True, transition=0.5, trick = 4)
     #-----------Conv-----------
     elif(netType == 'CN_Conv_c5_complex'):
         return CN_Conv(2,c=5,dilate=False)

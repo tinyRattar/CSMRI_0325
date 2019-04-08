@@ -192,7 +192,7 @@ class transitionLayer(nn.Module):
 
 class convLayer(nn.Module):
     def __init__(self, inChannel = 64, outChannel = 64, activ = 'ReLU'):
-        super(transitionLayer, self).__init__()
+        super(convLayer, self).__init__()
         self.bn = nn.BatchNorm2d(inChannel)
         if(activ == 'LeakyReLU'):
             self.relu = nn.LeakyReLU()

@@ -1,0 +1,5 @@
+*.pyc
+/result
+cardiac_ktz/
+/log
+data

@@ -71,13 +71,13 @@ class subDenseNet(nn.Module):
         super(subDenseNet, self).__init__()
         self.transition = transition
         self.inConv = nn.Conv2d(inChannel, fNum, 3, padding = 1)
-        # if(activation == 'LeakyReLU'):
-        #     self.activ = nn.LeakyReLU()
-        # elif(activation == 'ReLU'):
-        #     self.activ = nn.ReLU()
+        if(activation == 'LeakyReLU'):
+            self.activ = nn.LeakyReLU()
+        elif(activation == 'ReLU'):
+            self.activ = nn.ReLU()
         self.denseConv = denseConv(fNum, fNum, 3, growthRate, layer, dilationLayer = dilate, activ = activation, useOri = useOri)
         if(transition>0):
-            assert transition==0.5, "transition has to be 0.5 for debug"
+            #assert transition==0.5, "transition has to be 0.5 for debug"
             self.transitionLayer = transitionLayer(fNum+growthRate*(layer-2), transition, activ = activation)
             #self.outConv = nn.Conv2d(int((fNum+growthRate*(layer-2))*transition), inChannel, 3, padding = 1)
             self.outConv = convLayer(int((fNum+growthRate*(layer-2))*transition), inChannel, activ = activation)
@@ -87,11 +87,11 @@ class subDenseNet(nn.Module):
 
     def forward(self,x):
         x2 = self.inConv(x)
-        # x2 = self.activ(x2)
+        #x2 = self.activ(x2)
         x2 = self.denseConv(x2)
         if(self.transition>0):
         	x2 = self.transitionLayer(x2)
-        	x2 = self.activ(x2)
+        	#x2 = self.activ(x2)
         x2 = self.outConv(x2)
         x3 = x2+x
 

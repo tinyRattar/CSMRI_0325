@@ -198,7 +198,7 @@ class convLayer(nn.Module):
             self.relu = nn.LeakyReLU()
         else:
             self.relu = nn.ReLU()
-        self.conv = nn.Conv2d(inChannel,outChannel,1)
+        self.conv = nn.Conv2d(inChannel,outChannel,3,padding = 1)
         
     def forward(self,x):
         x1 = self.bn(x)

@@ -12,7 +12,7 @@ from .DenseUnet_origin import DUori_cn
 from .RDN import RDN
 from .RDN_complex import RDN_complex
 from .DC_CNN import DC_CNN,DC_CNN_DDU
-#from .DC_CNN_dynamic import DC_CNN_dynamic_DS,DC_CNN_dynamic
+from .DC_CNN_dynamic import DC_CNN_dynamic_DS,DC_CNN_dynamic
 from .DDU import DDU,DDU_c2,DDU_debug,DDU_cn
 from .DDU_dynamic import DDU3d
 #from .DDU_origin import DDU_ori
@@ -35,6 +35,8 @@ def getOptimizer(param, optimizerType, LR, weightDecay = 0):
     return optimizer
 
 def getNet(netType):
+    if('3d' in netType):
+        return getNet3d(netType[3:])
     if(netType == 'DDU'):
         return DDU(1)
     elif(netType == 'DDU_leakyReLU'):
@@ -135,6 +137,14 @@ def getNet(netType):
     #===========Others============
     elif(netType == 'vanillaCNN'):
         return vanillaCNN()
+    else:
+        assert False,"Wrong net type"
+
+def getNet3d(netType):
+    if(netType == 'DCCNN'):
+        return DC_CNN_dynamic()
+    if(netType == 'DCCNN_DS'):
+        return DC_CNN_dynamic_DS()
     else:
         assert False,"Wrong net type"
         

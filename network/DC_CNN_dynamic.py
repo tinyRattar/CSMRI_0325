@@ -19,13 +19,13 @@ class DC_CNN_dynamic_DS(nn.Module):
         templayerList = []
         for i in range(c):
             tmpConv = convBlock(d,12)
-            tmpDF = dataConsistencyLayer()
+            tmpDF = dataConsistencyLayer(isStatic = True)
             templayerList.append(tmpConv)
             templayerList.append(tmpDF)
         self.layerList = nn.ModuleList(templayerList)
         
-    def forward(self, x1, mask):
-        y = x1[:,0:2]
+    def forward(self, x1, y, mask):
+        #y = x1[:,0:2]
         xt = x1
         flag = True
         dsFlag = False
@@ -69,30 +69,30 @@ class convBlock(nn.Module):
         
         return x4
     
-class dataConsistencyLayer(nn.Module):
-    def __init__(self, initLamda = 1):
-        super(dataConsistencyLayer, self).__init__()
-        self.lamda = Parameter(torch.Tensor(1))
-        self.lamda.data.uniform_(0, 1)
-        #self.lamda.data = torch.Tensor([initLamda])
-        #self.lamda = initLamda
+# class dataConsistencyLayer(nn.Module):
+#     def __init__(self, initLamda = 1):
+#         super(dataConsistencyLayer, self).__init__()
+#         self.lamda = Parameter(torch.Tensor(1))
+#         self.lamda.data.uniform_(0, 1)
+#         #self.lamda.data = torch.Tensor([initLamda])
+#         #self.lamda = initLamda
     
-    def forward(self, xin, y, mask):
-        iScale = self.lamda/(1+self.lamda)
-        mask = mask.reshape(mask.shape[0],mask.shape[1],mask.shape[2],mask.shape[3],1)
+#     def forward(self, xin, y, mask):
+#         iScale = self.lamda/(1+self.lamda)
+#         mask = mask.reshape(mask.shape[0],mask.shape[1],mask.shape[2],mask.shape[3],1)
         
-        xin_c = xin.permute(0,2,3,4,1)
-        xGT_c = y.permute(0,2,3,4,1)
+#         xin_c = xin.permute(0,2,3,4,1)
+#         xGT_c = y.permute(0,2,3,4,1)
         
-        xin_f = torch.fft(xin_c,2)
-        xGT_f = torch.fft(xGT_c,2)
+#         xin_f = torch.fft(xin_c,2)
+#         xGT_f = torch.fft(xGT_c,2)
         
-        xout_f = xin_f + (- xin_f + xGT_f) * iScale * mask
+#         xout_f = xin_f + (- xin_f + xGT_f) * iScale * mask
 
-        xout = torch.ifft(xout_f,2)
-        xout = xout.permute(0,4,1,2,3)
+#         xout = torch.ifft(xout_f,2)
+#         xout = xout.permute(0,4,1,2,3)
         
-        return xout
+#         return xout
     
 class dataSharing(nn.Module):
     def __init__(self, nadj=1):
@@ -104,7 +104,7 @@ class dataSharing(nn.Module):
 #             return x1
         mask = mask.reshape(mask.shape[0],mask.shape[1],mask.shape[2],mask.shape[3],1)
         x1_c = x1.permute(0,2,3,4,1)
-        x1_f = torch.fft(x1_c,2)
+        x1_f = torch.fft(x1_c,2, normalized=True)
         
         xfake = torch.zeros((x1_f.shape[0],x1_f.shape[1]+self.nadj*2,x1_f.shape[2],x1_f.shape[3],2)).cuda()
         xfake[:,self.nadj:-self.nadj] = x1_f
@@ -127,7 +127,7 @@ class dataSharing(nn.Module):
         xout_f = x1_f
         xout_f[mshare[:,:,:,:,0]!=0] = xshare[mshare[:,:,:,:,0]!=0]/mshare[mshare[:,:,:,:,0]!=0]
         
-        xout = torch.ifft(xout_f,2)
+        xout = torch.ifft(xout_f,2, normalized=True)
         xout = xout.permute(0,4,1,2,3)
         
         return xout
@@ -139,13 +139,13 @@ class DC_CNN_dynamic(nn.Module):
         templayerList = []
         for i in range(c):
             tmpConv = convBlock(d)
-            tmpDF = dataConsistencyLayer()
+            tmpDF = dataConsistencyLayer(isStatic = True)
             templayerList.append(tmpConv)
             templayerList.append(tmpDF)
         self.layerList = nn.ModuleList(templayerList)
         
-    def forward(self, x1, mask):
-        y = x1[:,0:2]
+    def forward(self, x1, y, mask):
+        #y = x1[:,0:2]
         xt = x1
         flag = True
         for layer in self.layerList:

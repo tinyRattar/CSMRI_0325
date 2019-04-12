@@ -81,7 +81,7 @@ def getDataloader(dataType = '1in1',mode = 'train', batchSize = 1):
     elif(mainType == '3in1'):
         dataset = dataset_xin1(a, b, dataMode, samplingMode, 3, reduceMode)
     elif(mainType == '3d'):
-        dataset = dataset_3d(a, b, dataMode, samplingMode, npatch)
+        dataset = dataset_3d_noImg(a, b, dataMode, samplingMode, npatch)
     else:
         assert False,"wrong dataset type"
         
@@ -267,7 +267,7 @@ class dataset_3d_noImg(data.Dataset):
                             mask = subsampling_mask(im_np, 0, 'fakeRandom', mi)
                         else:
                             mask = subsampling_mask(im_np, offset)
-                        m = np.fft.ifftshift(mask)
+                        mask = np.fft.ifftshift(mask)
 
                         y[0,t-1] = im_np[:,p*int(256/npatch):(p+1)*int(256/npatch)]
                         m[t-1] = mask[:,p*int(256/npatch):(p+1)*int(256/npatch)]
@@ -288,7 +288,7 @@ class dataset_3d_noImg(data.Dataset):
         return img, label, mask
 
     def __len__(self):
-        return len(self.xList)
+        return len(self.yList)
     
 
 class dataset_1in1_noImg(data.Dataset):

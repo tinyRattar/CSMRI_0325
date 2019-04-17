@@ -52,14 +52,20 @@ def getDataloader(dataType = '1in1',mode = 'train', batchSize = 1):
     else:
         dataMode = 'abs'
     #-----------------------
-    if(('fakeRandom' in dataType) or ('random' in dataType)):
-        samplingMode = 'fakeRandom'
+    if('static' in dataType):
+        staticSampling = True
+        staticPrefix = "static"
+    else:
+        staticSampling = False
+        staticPrefix = ""
+    if('random' in dataType):
+        samplingMode = 'random'
     elif(('r15' in dataType) or ('rand15' in dataType)):
         samplingMode = 'rand15'
+    elif('fakeRandom' in dataType):
+        samplingMode = 'fakeRandom'
     elif('nolattice' in dataType):
         samplingMode = 'nolattice'
-    elif('static' in dataType):
-        samplingMode = 'static'
     else:
         samplingMode = 'lattice'
         #assert False,"DataType ERROR: No samplingMode Include"
@@ -70,18 +76,20 @@ def getDataloader(dataType = '1in1',mode = 'train', batchSize = 1):
     else:
         npatch = 1
         strNpatch = ""
-    datasetName = generateDatasetName([mainType,dataMode,strNpatch,samplingMode,mode,reduceMode])
+    datasetName = generateDatasetName([mainType,dataMode,strNpatch,staticPrefix+samplingMode,mode,reduceMode])
     print('#Generating dataset:'+datasetName)
     #=============================
     if(mainType == '1in1'):
         #dataset = dataset_xin1(a, b, dataMode, samplingMode, 1, reduceMode)
-        dataset = dataset_1in1_noImg(a, b, dataMode, samplingMode, reduceMode)
+        dataset = dataset_1in1_noImg(a, b, dataMode, samplingMode, reduceMode, staticSampling)
     elif(mainType == '1in1old'):
+        assert False, "abandoned mainType in dataType"
         dataset = dataset_xin1(a, b, dataMode, samplingMode, 1, reduceMode)
     elif(mainType == '3in1'):
+        assert False, "abandoned mainType in dataType"
         dataset = dataset_xin1(a, b, dataMode, samplingMode, 3, reduceMode)
     elif(mainType == '3d'):
-        dataset = dataset_3d_noImg(a, b, dataMode, samplingMode, npatch)
+        dataset = dataset_3d_noImg(a, b, dataMode, samplingMode, npatch, staticSampling)
     else:
         assert False,"wrong dataset type"
         
@@ -159,7 +167,7 @@ class dataset_xin1(data.Dataset):
     def __init__(self, iStart = 1,iEnd = 31, mode = 'abs', samplingMode = 'default', xin1 = 1, reduceMode = ""):
         assert xin1 == 1, "xin1 not support now"
         self.xin1 = xin1
-        if(samplingMode == 'fakeRandom'):
+        if(samplingMode == 'random'):
             mDic = sio.loadmat(fakeRandomPath)
             miList = mDic['RAll']
         if(mode == 'complex'):
@@ -185,10 +193,10 @@ class dataset_xin1(data.Dataset):
                     im = Image.open(filename)
                     im_np = np.array(im).astype(np.float32)/255.
                     
-                    if(samplingMode == 'fakeRandom'):
+                    if(samplingMode == 'random'):
                         randI = random.randrange(miList.shape[1])
                         mi = miList[:,randI]
-                        subF,mask = kspace_subsampling(im_np, 0, 'fakeRandom', mi)
+                        subF,mask = kspace_subsampling(im_np, 0, 'random', mi)
                     else:
                         subF,mask = kspace_subsampling(im_np, offset)
                     subImg = f2img(subF)
@@ -235,8 +243,8 @@ class dataset_xin1(data.Dataset):
         return len(self.xList)
 
 class dataset_3d_noImg(data.Dataset):
-    def __init__(self, iStart = 1,iEnd = 31, mode = 'abs', samplingMode = 'default', npatch = 1):
-        if(samplingMode == 'fakeRandom'):
+    def __init__(self, iStart = 1,iEnd = 31, mode = 'abs', samplingMode = 'default', npatch = 1, staticRandom = False):
+        if(samplingMode == 'random'):
             mDic = sio.loadmat(fakeRandomPath)
             miList = mDic['RAll']
         elif(samplingMode == 'rand15'):
@@ -262,7 +270,10 @@ class dataset_3d_noImg(data.Dataset):
                         im_np = np.array(im).astype(np.float32)/255.
                         
                         if(samplingMode == 'fakeRandom' or ('rand' in samplingMode)):
-                            randI = random.randrange(miList.shape[1])
+                            if(staticRandom):
+                                randI = index
+                            else:
+                                randI = random.randrange(miList.shape[1])
                             mi = miList[:,randI]
                             mask = subsampling_mask(im_np, 0, 'fakeRandom', mi)
                         else:
@@ -292,8 +303,8 @@ class dataset_3d_noImg(data.Dataset):
     
 
 class dataset_1in1_noImg(data.Dataset):
-    def __init__(self, iStart = 1,iEnd = 31, mode = 'abs', samplingMode = 'default', reduceMode = ""):
-        if(samplingMode == 'fakeRandom'):
+    def __init__(self, iStart = 1,iEnd = 31, mode = 'abs', samplingMode = 'default', reduceMode = "", staticRandom = False):
+        if(samplingMode == 'random'):
             mDic = sio.loadmat(fakeRandomPath)
             miList = mDic['RAll']
         elif(samplingMode == 'rand15'):
@@ -311,7 +322,7 @@ class dataset_1in1_noImg(data.Dataset):
             tList = range(1,21)
         if('nolattice_offset' in samplingMode):
             offset = int(samplingMode[-1])
-        for i in range(iStart,iEnd): 
+        for i in range(iStart,iEnd):
             for z in range(0,5): #0,4
                 for t in tList: #1,20
                     #index = (i-iStart)*100+z*20+t-1
@@ -320,7 +331,10 @@ class dataset_1in1_noImg(data.Dataset):
                     im_np = np.array(im).astype(np.float32)/255.
                     
                     if(samplingMode == 'fakeRandom' or ('rand' in samplingMode)):
-                        randI = random.randrange(miList.shape[1])
+                        if(staticRandom):
+                            randI = index
+                        else:
+                            randI = random.randrange(miList.shape[1])
                         mi = miList[:,randI]
                         mask = subsampling_mask(im_np, 0, 'fakeRandom', mi)
                     else:

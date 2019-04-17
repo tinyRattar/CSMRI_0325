@@ -4,24 +4,25 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 from .networkUtil import *
+from .networkUtil_dynamic import *
 
-class convBlock(nn.Module):
+class convBlock3d(nn.Module):
     def __init__(self, inChannel = 2, iConvNum = 5, f=32, dilationLayer = False):
-        super(convBlock, self).__init__()
+        super(convBlock3d, self).__init__()
         dilate = 1
         if(dilationLayer):
             dilateMulti = 2
         else:
             dilateMulti = 1
         self.Relu = nn.ReLU()
-        self.conv1 = nn.Conv2d(inChannel,f,3,padding = 1)
+        self.conv1 = nn.Conv3d(inChannel,f,3,padding = 1)
         convList = []
         for i in range(1, iConvNum-1):
-            tmpConv = nn.Conv2d(f,f,3,padding = dilate, dilation = dilate)
+            tmpConv = nn.Conv3d(f,f,3,padding = dilate, dilation = dilate)
             dilate = dilate * dilateMulti
             convList.append(tmpConv)
         self.layerList = nn.ModuleList(convList)
-        self.conv2 = nn.Conv2d(f,2,3,padding = 1)
+        self.conv2 = nn.Conv3d(f,2,3,padding = 1)
     
     def forward(self, x1):
         x2 = self.conv1(x1)
@@ -36,9 +37,9 @@ class convBlock(nn.Module):
         
         return x4
 
-class denseConv(nn.Module):
+class denseConv3d(nn.Module):
     def __init__(self, inChannel=16, outChannel=16, kernelSize=3, growthRate=16, layer=4, inceptionLayer = False, dilationLayer = False, activ = 'ReLU', useOri = False):
-        super(denseConv, self).__init__()
+        super(denseConv3d, self).__init__()
         dilate = 1
         if(dilationLayer):
             dilateMulti = 2
@@ -49,9 +50,9 @@ class denseConv(nn.Module):
         templayerList = []
         for i in range(0, self.denselayer):
             if(useOri):
-                tempLayer = denseBlockLayer_origin(inChannel+growthRate*i, growthRate, kernelSize, inChannel, dilate, activ)
+                tempLayer = denseBlockLayer_origin3d(inChannel+growthRate*i, growthRate, kernelSize, inChannel, dilate, activ)
             else:
-                tempLayer = denseBlockLayer(inChannel+growthRate*i,growthRate,kernelSize,inceptionLayer,dilate,activ)
+                tempLayer = denseBlockLayer3d(inChannel+growthRate*i,growthRate,kernelSize,inceptionLayer,dilate,activ)
             dilate = dilate * dilateMulti
             templayerList.append(tempLayer)
         self.layerList = nn.ModuleList(templayerList)
@@ -63,64 +64,56 @@ class denseConv(nn.Module):
             
         return x
 
-class subDenseNet(nn.Module):
+class subDenseNet3d(nn.Module):
     '''
     ioChannel[0] = 2 for complex
     '''
-    def __init__(self, ioChannel = 1, fNum = 16, growthRate = 16, layer = 3, dilate = False, activation = 'ReLU', useOri = False, transition = 0, useSE = False):
-        super(subDenseNet, self).__init__()
+    def __init__(self, ioChannel = 1, fNum = 16, growthRate = 16, layer = 3, dilate = False, activation = 'ReLU', useOri = False, transition = 0):
+        super(subDenseNet3d, self).__init__()
         if(isinstance(ioChannel,int)):
-            self.inChannel = ioChannel
-            self.outChannel = ioChannel
+        	self.inChannel = ioChannel
+        	self.outChannel = ioChannel
         else:
-            self.inChannel = ioChannel[0]
-            self.outChannel = ioChannel[1]
+        	self.inChannel = ioChannel[0]
+        	self.outChannel = ioChannel[1]
 
         self.transition = transition
-        self.useSE = useSE
-        self.inConv = nn.Conv2d(self.inChannel, fNum, 3, padding = 1)
+        self.inConv = nn.Conv3d(self.inChannel, fNum, 3, padding = 1)
         if(activation == 'LeakyReLU'):
             self.activ = nn.LeakyReLU()
         elif(activation == 'ReLU'):
             self.activ = nn.ReLU()
-        self.denseConv = denseConv(fNum, fNum, 3, growthRate, layer, dilationLayer = dilate, activ = activation, useOri = useOri)
-        if(self.useSE):
-        	self.se = SELayer(fNum+growthRate*(layer-2),256,256)
+        self.denseConv = denseConv3d(fNum, fNum, 3, growthRate, layer, dilationLayer = dilate, activ = activation, useOri = useOri)
         if(transition>0):
             #assert transition==0.5, "transition has to be 0.5 for debug"
-            self.transitionLayer = transitionLayer(fNum+growthRate*(layer-2), transition, activ = activation)
-            #self.outConv = nn.Conv2d(int((fNum+growthRate*(layer-2))*transition), inChannel, 3, padding = 1)
-            self.outConv = convLayer(int((fNum+growthRate*(layer-2))*transition), self.outChannel, activ = activation)
+            self.transitionLayer = transitionLayer3d(fNum+growthRate*(layer-2), transition, activ = activation)
+            self.outConv = convLayer3d(int((fNum+growthRate*(layer-2))*transition), self.outChannel, activ = activation)
         else:
-            #self.outConv = nn.Conv2d(fNum+growthRate*(layer-2), inChannel, 3, padding = 1)
-            self.outConv = convLayer(fNum+growthRate*(layer-2), self.outChannel, activ = activation)
+            self.outConv = convLayer3d(fNum+growthRate*(layer-2), self.outChannel, activ = activation)
 
     def forward(self,x):
         x2 = self.inConv(x)
         #x2 = self.activ(x2)
         x2 = self.denseConv(x2)
-        if(self.useSE):
-        	x2 = self.se(x2)
         if(self.transition>0):
-            x2 = self.transitionLayer(x2)
-            #x2 = self.activ(x2)
+        	x2 = self.transitionLayer(x2)
+        	#x2 = self.activ(x2)
         x2 = self.outConv(x2)
         x3 = x2+x[:,:self.outChannel]
 
         return x3
 
-class CN_Dense(nn.Module):
-    def __init__(self, inChannel = 1, d = 5, c = 5, fNum = 16, growthRate = 16, dilate = False, activation = 'ReLU',  \
-        useOri = False, transition=0, trick = 0, globalDense = False, useSE = False):
-        super(CN_Dense, self).__init__()
+class CN_Dense_3d(nn.Module):
+    def __init__(self, inChannel = 1, d = 5, c = 5, fNum = 16, growthRate = 16, dilate = False, activation = 'ReLU', useOri = False, transition=0, trick = 0, globalDense = False):
+        super(CN_Dense_3d, self).__init__()
         self.globalSkip = globalDense
         templayerList = []
         for i in range(c):
             if(self.globalSkip):
-                tmpSubNet = subDenseNet((inChannel*(i+1),inChannel), fNum, growthRate, d, dilate, activation, useOri, transition, useSE)
+                tmpSubNet = subDenseNet3d((inChannel*(i+1),inChannel), fNum, growthRate, d, dilate, activation, useOri, transition)
             else:
-                tmpSubNet = subDenseNet(inChannel, fNum, growthRate, d, dilate, activation, useOri, transition, useSE)
-            tmpDF = dataConsistencyLayer_static(trick = trick)
+                tmpSubNet = subDenseNet3d(inChannel, fNum, growthRate, d, dilate, activation, useOri, transition)
+            tmpDF = dataConsistencyLayer_static(trick = trick, dynamic = True)
             templayerList.append(tmpSubNet)
             templayerList.append(tmpDF)
         self.layerList = nn.ModuleList(templayerList)
@@ -136,24 +129,24 @@ class CN_Dense(nn.Module):
                 xt = layer(xt, y, mask)
                 flag = True
                 if(self.globalSkip):
-                    xin = torch.cat([xt,xin],1)
+                	xin = torch.cat([xt,xin],1)
                 else:
-                    xin = xt
+                	xin = xt
         
         return xt
 
-class CN_Conv(nn.Module):
+class CN_Conv_3d(nn.Module):
     def __init__(self, inChannel = 2, d = 5, c = 5, fNum = 32, dilate = False, trick = 0):
         '''
         trick 1 : abs->DC
         trick 2 : DC->abs->DC
         '''
         self.trick = trick
-        super(CN_Conv, self).__init__()
+        super(CN_Conv_3d, self).__init__()
         templayerList = []
         for i in range(c):
-            tmpSubNet = convBlock(2, d, fNum, dilate)
-            tmpDF = dataConsistencyLayer_static()
+            tmpSubNet = convBlock3d(2, d, fNum, dilate)
+            tmpDF = dataConsistencyLayer_static(dynamic = True)
             templayerList.append(tmpSubNet)
             templayerList.append(tmpDF)
         self.layerList = nn.ModuleList(templayerList)
@@ -161,7 +154,7 @@ class CN_Conv(nn.Module):
         if(self.trick in [3,4]):
             tmpConvList = []
             for i in range(1):
-                tempConv = nn.Conv2d(4,2,1,padding=0)
+                tempConv = nn.Conv3d(4,2,1,padding=0)
                 tmpConvList.append(tempConv)
             self.trickConvList = nn.ModuleList(tmpConvList)
         
@@ -201,9 +194,9 @@ class CN_Conv(nn.Module):
         
         return xt
 
-class CN_SkipConv(nn.Module):
+class CN_SkipConv_3d(nn.Module):
     def __init__(self, inChannel = 2, d = 5, c = 5, fNum = 32, dilate = False, trick = 0, skipMode = 0):
-        super(CN_SkipConv, self).__init__()
+        super(CN_SkipConv_3d, self).__init__()
         assert c==5, "only c = 5 is acceptable in skip mode"
         self.trick = trick
         self.skipMode = skipMode
@@ -211,10 +204,10 @@ class CN_SkipConv(nn.Module):
         templayerList = []
         for i in range(c):
             if(i<2 or (i<3 and self.skipMode==0)):
-                tmpSubNet = convBlock(2, d, fNum, dilate)
+                tmpSubNet = convBlock3d(2, d, fNum, dilate)
             else:
-                tmpSubNet = convBlock(4, d, fNum, dilate)
-            tmpDF = dataConsistencyLayer_static()
+                tmpSubNet = convBlock3d(4, d, fNum, dilate)
+            tmpDF = dataConsistencyLayer_static(dynamic = True)
             templayerList.append(tmpSubNet)
             templayerList.append(tmpDF)
         self.layerList = nn.ModuleList(templayerList)
@@ -222,7 +215,7 @@ class CN_SkipConv(nn.Module):
         if(self.trick in [3,4]):
             tmpConvList = []
             for i in range(c):
-                tempConv = nn.Conv2d(4,2,1,padding=0)
+                tempConv = nn.Conv3d(4,2,1,padding=0)
                 tmpConvList.append(tempConv)
             self.trickConvList = nn.ModuleList(tmpConvList)
 

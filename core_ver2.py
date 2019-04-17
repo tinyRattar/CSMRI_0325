@@ -56,10 +56,10 @@ class core():
             assert len(listDevice) > 0,"No device is selected"
             print('parallel device:'+str(listDevice))
             if(self.mode=='2net'): 
-                self.net1 = nn.DataParallel(self.net1,device_ids = listDevice).type(self.dtype)
-                self.net2 = nn.DataParallel(self.net2,device_ids = listDevice).type(self.dtype)
+                self.net1 = nn.DataParallel(self.net1, device_ids = listDevice).type(self.dtype)
+                self.net2 = nn.DataParallel(self.net2, device_ids = listDevice).type(self.dtype)
             else:
-                self.net = nn.DataParallel(self.net,device_ids = listDevice).type(self.dtype)
+                self.net = nn.DataParallel(self.net, device_ids = listDevice).type(self.dtype)
         if(self.mode=='2net'): 
             self.net = nn.ModuleList([self.net1,self.net2])
         self.lossForward = getLoss(self.config['general']['lossType']).type(self.dtype)

@@ -17,6 +17,7 @@ from .DDU import DDU,DDU_c2,DDU_debug,DDU_cn
 from .DDU_dynamic import DDU3d
 #from .DDU_origin import DDU_ori
 from .cascadeNetwork import CN_Dense,CN_Conv,CN_SkipConv
+from .cascadeNetwork_dynamic import CN_Dense_3d,CN_Conv_3d
 
 def getOptimizer(param, optimizerType, LR, weightDecay = 0):
     if(optimizerType == 'RMSprop'):
@@ -96,6 +97,8 @@ def getNet(netType):
         return CN_Dense(2,c=5,dilate=False, useOri = True)
     elif(netType == 'CN_Ori_c5_complex_tr'):
         return CN_Dense(2,c=5,dilate=False, useOri = True, transition=0.5)
+    elif(netType == 'CN_Ori_c5_complex_tr_se'):
+        return CN_Dense(2,c=5,dilate=False, useOri = True, transition=0.5, useSE = True)
     elif(netType == 'CN_Ori_c5_complex_tr_trick2'):
         return CN_Dense(2,c=5,dilate=False, useOri = True, transition=0.5, trick = 2)
     elif(netType == 'CN_Ori_c5_complex_tr_trick4'):
@@ -113,8 +116,15 @@ def getNet(netType):
         return CN_Dense(2,c=5,dilate=True, useOri = True)
     elif(netType == 'CN_dOri_c5_complex_tr'): 
         return CN_Dense(2,c=5,dilate=True, useOri = True, transition=0.5)
+    elif(netType == 'CN_dOri_c5_complex_f32_tr'): 
+        return CN_Dense(2,c=5,fNum = 32, dilate=True, useOri = True, transition=0.5)
+    elif(netType == 'CN_dOri_c5_complex_fg32_tr'): 
+        return CN_Dense(2,c=5,fNum = 32, growthRate = 32, dilate=True, useOri = True, transition=0.5)
     elif(netType == 'CN_dOri_c5_complex_tr_trick4'): 
         return CN_Dense(2,c=5,dilate=True, useOri = True, transition=0.5, trick = 4)
+    #-----------globalDense----
+    elif(netType == 'CN_Ori_c5_complex_tr_gd'):
+        return CN_Dense(2,c=5,dilate=False, useOri = True, transition=0.5, globalDense = True)
     #-----------Conv-----------
     elif(netType == 'CN_Conv_c5_complex'):
         return CN_Conv(2,c=5,dilate=False)
@@ -143,8 +153,32 @@ def getNet(netType):
 def getNet3d(netType):
     if(netType == 'DCCNN'):
         return DC_CNN_dynamic()
-    if(netType == 'DCCNN_DS'):
+    elif(netType == 'DCCNN_DS'):
         return DC_CNN_dynamic_DS()
+    #-----------Conv-----------
+    elif(netType == 'CN_Conv_c5_complex'):
+        return CN_Conv_3d(2,c=5,dilate=False)
+    elif(netType == 'CN_Conv_c5_complex_trick2'):
+        return CN_Conv_3d(2,c=5,trick = 2)
+    elif(netType == 'CN_Conv_c5_complex_trick4'):
+        return CN_Conv_3d(2,c=5,trick = 4)
+    #-----------DenseOri-------
+    elif(netType == 'CN_Ori_c5_complex_tr'):
+        return CN_Dense_3d(2,c=5,dilate=False, useOri = True, transition=0.5)
+    elif(netType == 'CN_Ori_c5_complex_tr_trick2'):
+        return CN_Dense_3d(2,c=5,dilate=False, useOri = True, transition=0.5, trick = 2)
+    elif(netType == 'CN_Ori_c5_complex_tr_trick4'):
+        return CN_Dense_3d(2,c=5,dilate=False, useOri = True, transition=0.5, trick = 4)
+    #-----------dOri-----------
+    elif(netType == 'CN_dOri_c5_complex_tr'): 
+        return CN_Dense_3d(2,c=5,dilate=True, useOri = True, transition=0.5)
+    elif(netType == 'CN_dOri_c5_complex_f32_tr'): 
+        return CN_Dense_3d(2,c=5,fNum = 32, dilate=True, useOri = True, transition=0.5)
+    elif(netType == 'CN_dOri_c5_complex_fg32_tr'): 
+        return CN_Dense_3d(2,c=5,fNum = 32, growthRate = 32, dilate=True, useOri = True, transition=0.5)
+    elif(netType == 'CN_dOri_c5_complex_tr_trick4'): 
+        return CN_Dense_3d(2,c=5,dilate=True, useOri = True, transition=0.5, trick = 4)
+    #===========Others============
     else:
         assert False,"Wrong net type"
         

@@ -19,6 +19,8 @@ from .DDU_dynamic import DDU3d
 from .cascadeNetwork import CN_Dense,CN_Conv,CN_SkipConv
 from .cascadeNetwork_dynamic import CN_Dense_3d,CN_Conv_3d
 
+from .pyramidNetwork import vanillaPyramidNetwork,vanillaPyramidNetwork2,vanillaPyramidNetwork3,vanillaPyramidNetwork_debug
+
 def getOptimizer(param, optimizerType, LR, weightDecay = 0):
     if(optimizerType == 'RMSprop'):
         optimizer = torch.optim.RMSprop(param, lr=LR)
@@ -111,6 +113,10 @@ def getNet(netType):
         return CN_Dense(2,c=5,dilate=False, fNum = 32, growthRate = 32, useOri = True)
     elif(netType == 'CN_Ori_c5_complex_fg32_tr'):
         return CN_Dense(2,c=5,dilate=False, fNum = 32, growthRate = 32, useOri = True, transition=0.5)
+    elif(netType == 'CN_Ori_d7c5_complex_tr'):
+        return CN_Dense(2,d=7,c=5,dilate=False, useOri = True, transition=0.5)
+    elif(netType == 'CN_Ori_c10_complex_tr'):
+        return CN_Dense(2,c=10,dilate=False, useOri = True, transition=0.5)
     #-----------dOri-----------
     elif(netType == 'CN_dOri_c5_complex'): # same with 'CN_DD_c5_complex_ori'
         return CN_Dense(2,c=5,dilate=True, useOri = True)
@@ -120,8 +126,12 @@ def getNet(netType):
         return CN_Dense(2,c=5,fNum = 32, dilate=True, useOri = True, transition=0.5)
     elif(netType == 'CN_dOri_c5_complex_fg32_tr'): 
         return CN_Dense(2,c=5,fNum = 32, growthRate = 32, dilate=True, useOri = True, transition=0.5)
-    elif(netType == 'CN_dOri_c5_complex_tr_trick4'): 
+    elif(netType == 'CN_dOri_c5_complex_tr_trick4'):
         return CN_Dense(2,c=5,dilate=True, useOri = True, transition=0.5, trick = 4)
+    elif(netType == 'CN_dOri_c10_complex_tr_trick4'):
+        return CN_Dense(2,c=10,dilate=True, useOri = True, transition=0.5, trick = 4)
+    elif(netType == 'CN_dOri_c10_complex_tr_trick4_se'):
+        return CN_Dense(2,c=10,dilate=True, useOri = True, transition=0.5, trick = 4, useSE = True)
     #-----------globalDense----
     elif(netType == 'CN_Ori_c5_complex_tr_gd'):
         return CN_Dense(2,c=5,dilate=False, useOri = True, transition=0.5, globalDense = True)
@@ -143,7 +153,15 @@ def getNet(netType):
         return CN_SkipConv(2,c=5,skipMode = 0)
     elif(netType == 'CN_SkipConv_c5_complex_sm1'):
         return CN_SkipConv(2,c=5,skipMode = 1)
-    
+    #===========Pyramid===========
+    elif(netType == 'PN_vanilla'):
+        return vanillaPyramidNetwork()
+    elif(netType == 'PN_vanilla2'):
+        return vanillaPyramidNetwork2()
+    elif(netType == 'PN_vanilla3'):
+        return vanillaPyramidNetwork3()
+    elif(netType == 'PN_vanilladebug'):
+        return vanillaPyramidNetwork_debug()
     #===========Others============
     elif(netType == 'vanillaCNN'):
         return vanillaCNN()

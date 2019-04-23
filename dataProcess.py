@@ -66,6 +66,8 @@ def getDataloader(dataType = '1in1',mode = 'train', batchSize = 1):
         samplingMode = 'fakeRandom'
     elif('nolattice' in dataType):
         samplingMode = 'nolattice'
+    elif('lattice8' in dataType):
+        samplingMode = 'lattice8'
     else:
         samplingMode = 'lattice'
         #assert False,"DataType ERROR: No samplingMode Include"
@@ -276,6 +278,8 @@ class dataset_3d_noImg(data.Dataset):
                                 randI = random.randrange(miList.shape[1])
                             mi = miList[:,randI]
                             mask = subsampling_mask(im_np, 0, 'fakeRandom', mi)
+                        elif(samplingMode == 'lattice8'):
+                            mask = subsampling_mask(im_np, offset, 'lattice8')
                         else:
                             mask = subsampling_mask(im_np, offset)
                         mask = np.fft.ifftshift(mask)
@@ -337,6 +341,8 @@ class dataset_1in1_noImg(data.Dataset):
                             randI = random.randrange(miList.shape[1])
                         mi = miList[:,randI]
                         mask = subsampling_mask(im_np, 0, 'fakeRandom', mi)
+                    elif(samplingMode == 'lattice8'):
+                        mask = subsampling_mask(im_np, offset, 'lattice8')
                     else:
                         mask = subsampling_mask(im_np, offset)
                     m = np.fft.ifftshift(mask)

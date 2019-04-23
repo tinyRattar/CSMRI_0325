@@ -4,33 +4,33 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.nn.parameter import Parameter
 
-class convBlock(nn.Module):
-    def __init__(self,inChannel=2, features=64, kernelSize=3, dilateMulti = 1,layer = 5):
-        super(convBlock, self).__init__()
-        self.layer = layer
+# class convBlock(nn.Module):
+#     def __init__(self,inChannel=2, features=64, kernelSize=3, dilateMulti = 1,layer = 5):
+#         super(convBlock, self).__init__()
+#         self.layer = layer
         
-        templayerList = []
-        dilate = 1
-        for i in range(0, self.layer - 1):
-            if(i == 0):
-                tempConv = nn.Conv2d(2, features, kernelSize, padding = int(dilate * (kernelSize - 1) / 2), dilation = dilate)
-            else:
-                tempConv = nn.Conv2d(features, features, kernelSize, padding = int(dilate * (kernelSize - 1) / 2), dilation = dilate)
-            templayerList.append(tempConv)
-            dilate = dilate * dilateMulti
-        tempConv = nn.Conv2d(features, 2, kernelSize, padding = int(dilate * (kernelSize - 1) / 2), dilation = dilate)
-        templayerList.append(tempConv)
-        self.layerList = nn.ModuleList(templayerList)
-        self.relu = nn.ReLU()
+#         templayerList = []
+#         dilate = 1
+#         for i in range(0, self.layer - 1):
+#             if(i == 0):
+#                 tempConv = nn.Conv2d(2, features, kernelSize, padding = int(dilate * (kernelSize - 1) / 2), dilation = dilate)
+#             else:
+#                 tempConv = nn.Conv2d(features, features, kernelSize, padding = int(dilate * (kernelSize - 1) / 2), dilation = dilate)
+#             templayerList.append(tempConv)
+#             dilate = dilate * dilateMulti
+#         tempConv = nn.Conv2d(features, 2, kernelSize, padding = int(dilate * (kernelSize - 1) / 2), dilation = dilate)
+#         templayerList.append(tempConv)
+#         self.layerList = nn.ModuleList(templayerList)
+#         self.relu = nn.ReLU()
     
-    def forward(self,x1):
-        x = x1
-        for i in range(0, self.layer - 1):
-            x = self.layerList[i](x)
-            x = self.relu(x)
-        y = self.layerList[self.layer - 1](x)
+#     def forward(self,x1):
+#         x = x1
+#         for i in range(0, self.layer - 1):
+#             x = self.layerList[i](x)
+#             x = self.relu(x)
+#         y = self.layerList[self.layer - 1](x)
         
-        return y
+#         return y
 
 class denseBlockLayer(nn.Module):
     def __init__(self,inChannel=64, outChannel=64, kernelSize=3, inception = False, dilateScale = 1, activ = 'ReLU'):

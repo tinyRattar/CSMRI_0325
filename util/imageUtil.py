@@ -64,6 +64,11 @@ def kspace_subsampling(srcImg,offset = 0,mode="default",mi=None):
         #mask = np.zeros((256,256))
         mask[offset::4,:] = 1
         mask[122:134,:] = 1
+    elif(mode == "lattice8"):
+        assert offset<8 , "offset out of range"
+        #mask = np.zeros((256,256))
+        mask[offset::8,:] = 1
+        mask[125:131,:] = 1
     elif(mode == "fakeRandom"):
         mask[mi==1,:] = 1
     else:
@@ -82,6 +87,11 @@ def subsampling_mask(srcImg,offset=0, mode = "default", mi = None):
         #mask = np.zeros((256,256))
         mask[offset::4,:] = 1
         mask[122:134,:] = 1
+    elif(mode == "lattice8"):
+        assert offset<8 , "offset out of range"
+        #mask = np.zeros((256,256))
+        mask[offset::8,:] = 1
+        mask[125:131,:] = 1
     elif(mode == "fakeRandom"):
         mask[mi==1,:] = 1
     else:

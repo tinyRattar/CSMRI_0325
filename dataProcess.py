@@ -42,6 +42,8 @@ def getDataloader(dataType = '1in1',mode = 'train', batchSize = 1):
         mainType = '3in1'
     elif('3d' in dataType):
         mainType = '3d'
+    elif('gma' in dataType):
+        mainType = 'gma'
     else:
         assert False,"DataType ERROR: No MainType Include"
     #-----------------------
@@ -92,6 +94,8 @@ def getDataloader(dataType = '1in1',mode = 'train', batchSize = 1):
         dataset = dataset_xin1(a, b, dataMode, samplingMode, 3, reduceMode)
     elif(mainType == '3d'):
         dataset = dataset_3d_noImg(a, b, dataMode, samplingMode, npatch, staticSampling)
+    elif(mainType == 'gma'):
+        dataset = dataset_3d_gma(dataMode,samplingMode = 'rand15', npatch = 8)
     else:
         assert False,"wrong dataset type"
         
@@ -289,6 +293,8 @@ class dataset_3d_noImg(data.Dataset):
                         
                         if(samplingMode == 'nolattice'):
                             pass
+                        elif(samplingMode == 'lattice8'):
+                            offset = (offset+1)%8
                         else:
                             offset = (offset+1)%4
                     #self.xList.append(x)
@@ -380,6 +386,68 @@ class dataset_1in1_noImg(data.Dataset):
         # else:
         label = self.yList[i]
         mask = self.mList[i]
+        
+        return img, label, mask
+
+    def __len__(self):
+        return len(self.yList)
+
+class dataset_3d_gma(data.Dataset):
+    def __init__(self, mode = 'abs', samplingMode = 'default', npatch = 1, staticRandom = False):
+        if(samplingMode == 'random'):
+            mDic = sio.loadmat(fakeRandomPath)
+            miList = mDic['RAll']
+        elif(samplingMode == 'rand15'):
+            mDic = sio.loadmat(fakeRandomPath_15)
+            miList = mDic['RAll']
+        self.yList = []
+        self.mList = []
+        assert mode in ['complex','abs'], "real mode is abandoned"
+        self.mode = mode
+        offset=0
+        for p in range(npatch):
+            #x = np.zeros((1,20,256,int(256/npatch)))
+            y = np.zeros((1,20,256,int(256/npatch)))
+            if(mode == 'complex'):
+                #x = np.zeros((2,20,256,int(256/npatch)))
+                y = np.zeros((2,20,256,int(256/npatch)))
+            m = np.zeros((20,256,int(256/npatch)))
+            for t in range(1,21): #1,20
+                #filename = "data/cardiac_ktz/mr_heart_p%02dt%02dz%d.png" % (i,t,z)
+                filename = "data/gma/seq_%d.png" % (t)
+                im = Image.open(filename)
+                im_np = np.array(im).astype(np.float32)/255.
+                
+                if(samplingMode == 'fakeRandom' or ('rand' in samplingMode)):
+                    if(staticRandom):
+                        randI = index
+                    else:
+                        randI = random.randrange(miList.shape[1])
+                    mi = miList[:,randI]
+                    mask = subsampling_mask(im_np, 0, 'fakeRandom', mi)
+                elif(samplingMode == 'lattice8'):
+                    mask = subsampling_mask(im_np, offset, 'lattice8')
+                else:
+                    mask = subsampling_mask(im_np, offset)
+                mask = np.fft.ifftshift(mask)
+
+                y[0,t-1] = im_np[:,p*int(256/npatch):(p+1)*int(256/npatch)]
+                m[t-1] = mask[:,p*int(256/npatch):(p+1)*int(256/npatch)]
+                
+                if(samplingMode == 'nolattice'):
+                    pass
+                elif(samplingMode == 'lattice8'):
+                    offset = (offset+1)%8
+                else:
+                    offset = (offset+1)%4
+            #self.xList.append(x)
+            self.yList.append(y)
+            self.mList.append(m)
+
+    def __getitem__(self, index):
+        img = self.mode
+        label = self.yList[index]
+        mask = self.mList[index]
         
         return img, label, mask
 

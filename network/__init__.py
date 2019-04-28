@@ -16,7 +16,7 @@ from .DC_CNN_dynamic import DC_CNN_dynamic_DS,DC_CNN_dynamic
 from .DDU import DDU,DDU_c2,DDU_debug,DDU_cn
 from .DDU_dynamic import DDU3d
 #from .DDU_origin import DDU_ori
-from .cascadeNetwork import CN_Dense,CN_Conv,CN_SkipConv
+from .cascadeNetwork import CN_Dense,CN_Conv,CN_SkipConv, DualNetwork_HnL
 from .cascadeNetwork_dynamic import CN_Dense_3d,CN_Conv_3d
 
 from .pyramidNetwork import vanillaPyramidNetwork,vanillaPyramidNetwork2,vanillaPyramidNetwork3,vanillaPyramidNetwork_debug
@@ -128,6 +128,8 @@ def getNet(netType):
         return CN_Dense(2,c=5,fNum = 32, growthRate = 32, dilate=True, useOri = True, transition=0.5)
     elif(netType == 'CN_dOri_c5_complex_tr_trick4'):
         return CN_Dense(2,c=5,dilate=True, useOri = True, transition=0.5, trick = 4)
+    elif(netType == 'CN_dOri_c5_complex_tr_trick4_gr'):
+        return CN_Dense(2,c=5,dilate=True, useOri = True, transition=0.5, trick = 4, globalResSkip = True)
     elif(netType == 'CN_dOri_c10_complex_tr_trick4'):
         return CN_Dense(2,c=10,dilate=True, useOri = True, transition=0.5, trick = 4)
     elif(netType == 'CN_dOri_c10_complex_tr_trick4_se'):
@@ -135,6 +137,11 @@ def getNet(netType):
     #-----------globalDense----
     elif(netType == 'CN_Ori_c5_complex_tr_gd'):
         return CN_Dense(2,c=5,dilate=False, useOri = True, transition=0.5, globalDense = True)
+    #-----------Unet-----------
+    elif(netType == 'CN_Unet_c5_complex'):
+        return CN_Dense(2,c=5,dilate=False, useOri = True, transition=1, subnetType = 'Unet')
+    elif(netType == 'CN_dUnet_c5_complex'):
+        return CN_Dense(2,c=5,dilate=True, useOri = True, transition=1, subnetType = 'Unet')
     #-----------Conv-----------
     elif(netType == 'CN_Conv_c5_complex'):
         return CN_Conv(2,c=5,dilate=False)
@@ -153,6 +160,29 @@ def getNet(netType):
         return CN_SkipConv(2,c=5,skipMode = 0)
     elif(netType == 'CN_SkipConv_c5_complex_sm1'):
         return CN_SkipConv(2,c=5,skipMode = 1)
+    #-----------DualNetwork-----
+    elif(netType == 'DN_HnL_Ori_c3'):
+        return DualNetwork_HnL(2, c=3, dilate = False, useOri = True, transition=0.5)
+    elif(netType == 'DN_HnL_Ori_c5'):
+        return DualNetwork_HnL(2, c=5, dilate = False, useOri = True, transition=0.5)
+    elif(netType == 'DN_HnL_Ori_HL2F3'):
+        return DualNetwork_HnL(2, c=(2,3), dilate = False, useOri = True, transition=0.5)
+    elif(netType == 'DN_HnL_Ori_HL2F3_cat'):
+        return DualNetwork_HnL(2, c=(2,3), dilate = False, useOri = True, transition=0.5, fuseMode = 'cat')
+    elif(netType == 'DN_HnL_Ori_c3_trick4'):
+        return DualNetwork_HnL(2, c=3, dilate = False, useOri = True, transition=0.5, trick = 4)
+    elif(netType == 'DN_HnL_dOri_c3_trick4'):
+        return DualNetwork_HnL(2, c=3, dilate = True, useOri = True, transition=0.5, trick = 4)
+    elif(netType == 'DN_HnL_dOri_HL2F3_trick2'):
+        return DualNetwork_HnL(2, c=(2,3), dilate = True, useOri = True, transition=0.5, trick = 2)
+    elif(netType == 'DN_HnL_dOri_HL2F3_trick4'):
+        return DualNetwork_HnL(2, c=(2,3), dilate = True, useOri = True, transition=0.5, trick = 4)
+    elif(netType == 'DN_HnL_dOri_HL2F5_trick4'):
+        return DualNetwork_HnL(2, c=(2,5), dilate = True, useOri = True, transition=0.5, trick = 4)
+    elif(netType == 'DN_HnL_dOri_S2F3_trick4'):
+        return DualNetwork_HnL(2, c=(2,3), dilate = True, useOri = True, transition=0.5, trick = 4, shareHL = True)
+    elif(netType == 'DN_debug'):
+        return DualNetwork_debug(2,c=1, dilate = False, useOri = True, transition=0.5)
     #===========Pyramid===========
     elif(netType == 'PN_vanilla'):
         return vanillaPyramidNetwork()
@@ -196,6 +226,8 @@ def getNet3d(netType):
         return CN_Dense_3d(2,c=5,fNum = 32, growthRate = 32, dilate=True, useOri = True, transition=0.5)
     elif(netType == 'CN_dOri_c5_complex_tr_trick4'): 
         return CN_Dense_3d(2,c=5,dilate=True, useOri = True, transition=0.5, trick = 4)
+    elif(netType == 'CN_dOri_c10_complex_tr_trick4'): 
+        return CN_Dense_3d(2,c=10,dilate=True, useOri = True, transition=0.5, trick = 4)
     #===========Others============
     else:
         assert False,"Wrong net type"

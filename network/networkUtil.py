@@ -191,14 +191,15 @@ class transitionLayer(nn.Module):
         return y
 
 class convLayer(nn.Module):
-    def __init__(self, inChannel = 64, outChannel = 64, activ = 'ReLU'):
+    def __init__(self, inChannel = 64, outChannel = 64, activ = 'ReLU', kernelSize = 3):
         super(convLayer, self).__init__()
         self.bn = nn.BatchNorm2d(inChannel)
+        pad = int((kernelSize-1)/2)
         if(activ == 'LeakyReLU'):
             self.relu = nn.LeakyReLU()
         else:
             self.relu = nn.ReLU()
-        self.conv = nn.Conv2d(inChannel,outChannel,3,padding = 1)
+        self.conv = nn.Conv2d(inChannel,outChannel,kernelSize,padding = pad)
         
     def forward(self,x):
         x1 = self.bn(x)
@@ -353,3 +354,77 @@ def abs4complex(x):
     y[:,1:2] = 0
 
     return y
+
+def kspaceFilter(xin, mask):
+    if(len(xin.shape)==4):
+        if(xin.shape[1]==1):
+            emptyImag = torch.zeros_like(xin)
+            xin_c = torch.cat([xin,emptyImag],1).permute(0,2,3,1)
+            #xGT_c = torch.cat([y,emptyImag],1).permute(0,2,3,1)
+        else:
+            xin_c = xin.permute(0,2,3,1)
+            #xGT_c = y.permute(0,2,3,1)
+        mask = mask.reshape(mask.shape[0],mask.shape[1],mask.shape[2],1)
+    elif(len(xin.shape)==5):
+        if(xin.shape[1]==1):
+            emptyImag = torch.zeros_like(xin)
+            xin_c = torch.cat([xin,emptyImag],1).permute(0,2,3,4,1)
+            #xGT_c = torch.cat([y,emptyImag],1).permute(0,2,3,4,1)
+        else:
+            xin_c = xin.permute(0,2,3,4,1)
+            #xGT_c = y.permute(0,2,3,4,1)
+        #mask = mask.reshape(1,1,mask.shape[0],mask.shape[1],1)
+        assert False,"3d not support"
+        #mask = mask.reshape(mask.shape[0],mask.shape[1],mask.shape[2],mask.shape[3],1)
+    else:
+        assert False, "xin shape length has to be 4(2d) or 5(3d)"
+    
+    xin_f = torch.fft(xin_c,2, normalized=True)
+    
+    xout_f = xin_f*mask
+
+    xout = torch.ifft(xout_f,2, normalized=True)
+    if(len(xin.shape)==4):
+        xout = xout.permute(0,3,1,2)
+    else:
+        xout = xout.permute(0,4,1,2,3)
+    if(xin.shape[1]==1):
+        # xout = xout[:,0:1]
+        xout = torch.sqrt(xout[:,0:1]*xout[:,0:1]+xout[:,1:2]*xout[:,1:2])
+    
+    return xout
+
+def kspaceFuse(x1,x2):
+    lout = []
+    for xin in [x1,x2]:
+        if(len(xin.shape)==4):
+            if(xin.shape[1]==1):
+                emptyImag = torch.zeros_like(xin)
+                xin_c = torch.cat([xin,emptyImag],1).permute(0,2,3,1)
+            else:
+                xin_c = xin.permute(0,2,3,1)
+        elif(len(xin.shape)==5):
+            if(xin.shape[1]==1):
+                emptyImag = torch.zeros_like(xin)
+                xin_c = torch.cat([xin,emptyImag],1).permute(0,2,3,4,1)
+            else:
+                xin_c = xin.permute(0,2,3,4,1)
+        else:
+            assert False, "xin shape length has to be 4(2d) or 5(3d)"
+        lout.append(xin_c)
+    x1c,x2c = lout
+    
+    x1f = torch.fft(x1c,2, normalized=True)
+    x2f = torch.fft(x2c,2, normalized=True)
+
+    xout_f = x1f+x2f
+
+    xout = torch.ifft(xout_f,2, normalized=True)
+    if(len(x1.shape)==4):
+        xout = xout.permute(0,3,1,2)
+    else:
+        xout = xout.permute(0,4,1,2,3)
+    if(xin.shape[1]==1):
+        xout = torch.sqrt(xout[:,0:1]*xout[:,0:1]+xout[:,1:2]*xout[:,1:2])
+
+    return xout

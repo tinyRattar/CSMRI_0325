@@ -174,3 +174,19 @@ def imgFromSubF_pytorch(subF,returnComplex=False):
     else:
         subIm = torch.sqrt(subIm[:,0:1]*subIm[:,0:1]+subIm[:,1:2]*subIm[:,1:2])
         return subIm
+
+def gaussianFilter(H,W,radius,highpass = True, needShift = True):
+    fmask = np.zeros((H,W))
+
+    for i in range(H):
+        for j in range(W):
+            D = np.sqrt((i-H/2)*(i-H/2)+(j-W/2)*(j-W/2));
+            if(highpass):
+                fmask[i,j] = 1 - np.exp(-D*D/2/(radius*radius))
+            else:
+                fmask[i,j] = np.exp(-D*D/2/(radius*radius))
+
+    if(needShift):
+        fmask = np.fft.fftshift(fmask)
+
+    return fmask

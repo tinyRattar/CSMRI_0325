@@ -185,29 +185,47 @@ class subUnet(nn.Module):
 
 class CN_Dense(nn.Module):
     def __init__(self, inChannel = 1, d = 5, c = 5, fNum = 16, growthRate = 16, dilate = False, activation = 'ReLU',  \
-        useOri = False, transition=0, trick = 0, globalDense = False, useSE = False, globalResSkip = False, subnetType = 'Dense'):
+        useOri = False, transition = 0, trick = 0, globalDense = False, useSE = False, globalResSkip = False, subnetType = 'Dense'):
         super(CN_Dense, self).__init__()
         self.globalSkip = globalDense
         self.globalResSkip = globalResSkip
-        if(subnetType == 'Dense'):
-            subNetClass = subDenseNet
-        elif(subnetType == 'Unet'):
-            subNetClass = subUnet
+        if(isinstance(trick,int)):
+            trickList = [trick] * c
         else:
-            assert False, "no such subnetType:"+subnetType
+            assert len(trick) == c, 'Different length of c and trick'
+            trickList = trick
+        if(isinstance(subnetType,str)):
+            subnetType = [subnetType] * c
+        else:
+            assert len(subnetType) == c, 'Different length of c and subnetType'
+        subNetClassList = []
+        for netType in subnetType:
+            if(netType == 'Dense' or netType == 'd'):
+                subNetClass = subDenseNet
+            elif(netType == 'Unet' or netType == 'u'):
+                subNetClass = subUnet
+            else:
+                assert False, "no such subnetType:" + subnetType
+            subNetClassList.append(subNetClass)
+        # if(subnetType == 'Dense'):
+        #     subNetClass = subDenseNet
+        # elif(subnetType == 'Unet'):
+        #     subNetClass = subUnet
+        # else:
+        #     assert False, "no such subnetType:"+subnetType
         templayerList = []
         for i in range(c):
             if(self.globalSkip):
-                tmpSubNet = subNetClass((inChannel*(i+1),inChannel), fNum, growthRate, d, dilate, activation, useOri, transition, useSE)
+                tmpSubNet = subNetClassList[i]((inChannel*(i+1),inChannel), fNum, growthRate, d, dilate, activation, useOri, transition, useSE)
             else:
                 if(isinstance(inChannel,tuple)):
                     if(i==0):
-                        tmpSubNet = subNetClass(inChannel, fNum, growthRate, d, dilate, activation, useOri, transition, useSE)
+                        tmpSubNet = subNetClassList[i](inChannel, fNum, growthRate, d, dilate, activation, useOri, transition, useSE)
                     else:
-                        tmpSubNet = subNetClass(inChannel[1], fNum, growthRate, d, dilate, activation, useOri, transition, useSE)
+                        tmpSubNet = subNetClassList[i](inChannel[1], fNum, growthRate, d, dilate, activation, useOri, transition, useSE)
                 else:
-                    tmpSubNet = subNetClass(inChannel, fNum, growthRate, d, dilate, activation, useOri, transition, useSE)
-            tmpDF = dataConsistencyLayer_static(trick = trick)
+                    tmpSubNet = subNetClassList[i](inChannel, fNum, growthRate, d, dilate, activation, useOri, transition, useSE)
+            tmpDF = dataConsistencyLayer_static(trick = trickList[i])
             templayerList.append(tmpSubNet)
             templayerList.append(tmpDF)
         if(globalResSkip):

@@ -99,7 +99,7 @@ def subsampling_mask(srcImg,offset=0, mode = "default", mi = None):
     
     return mask
 
-def addZoomIn(img,x0,y0,offsetX=32,offsetY=0,scale=2):
+def addZoomIn(img, x0 = 87, y0 = 135,offsetX=32,offsetY=0,scale=2,border = 0):
     if(len(img.shape)==3):
         im1 = np.zeros_like(img)
         im1 = img.copy()
@@ -107,8 +107,6 @@ def addZoomIn(img,x0,y0,offsetX=32,offsetY=0,scale=2):
         im1 = np.zeros((img.shape[0],img.shape[1],3))
         for i in range(3):
             im1[:,:,i] = img
-    x0 = 87
-    y0 = 135
     if(offsetY==0):
         offsetY = offsetX
     scale = 3
@@ -116,6 +114,9 @@ def addZoomIn(img,x0,y0,offsetX=32,offsetY=0,scale=2):
     imzoomin = cv2.resize(imzoomin,((offsetY*scale,offsetX*scale)))
     cv2.rectangle(im1,(x0,y0),(x0+offsetX,y0+offsetY),(255,0,0),1)
     im1[256-offsetY*scale:,256-offsetX*scale:] = imzoomin
+    if(border>0):
+        im[-32-border:-32,256-offsetX*scale-border:] = (0,0,0)
+        im[256-offsetY*scale-border:,-32-border:-32] = (0,0,0)
     
     return im1
 
@@ -190,3 +191,5 @@ def gaussianFilter(H,W,radius,highpass = True, needShift = True):
         fmask = np.fft.fftshift(fmask)
 
     return fmask
+
+

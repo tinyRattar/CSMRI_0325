@@ -70,7 +70,10 @@ class core():
             self.trainloader,self.trainsetSize = getDataloader(self.config['general']['dataType'],'train',self.batchSize)
         self.testloader,self.testsetSize = getDataloader(self.config['general']['dataType'],'test',1)
 
-        self.record = Recoder(self.config['general']['path'],self.saveEpoch*self.maxSaved)
+        if('FromLSF' in configPath):
+            self.record = Recoder('resultFromLSF/' + self.config['general']['path'],self.saveEpoch*self.maxSaved)
+        else:
+            self.record = Recoder(self.config['general']['path'],self.saveEpoch*self.maxSaved)
         
         if(not isEvaluate):
             self.config.write(open(self.record.rootPath+"/config.ini","w"))

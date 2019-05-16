@@ -6,7 +6,7 @@ from torch.autograd import Variable
 from collections import OrderedDict
 
 from .networkUtil import *
-from .CNN import vanillaCNN
+from .CNN import vanillaCNN,Unet_dc
 #from .DenseUnet_dilate import DenseUnet_dilate
 from .DenseUnet_origin import DUori_cn
 from .RDN import RDN
@@ -216,6 +216,8 @@ def getNet(netType):
     #===========Others============
     elif(netType == 'vanillaCNN'):
         return vanillaCNN()
+    elif(netType == 'Unet_dc'):
+        return Unet_dc()
     else:
         assert False,"Wrong net type"
 

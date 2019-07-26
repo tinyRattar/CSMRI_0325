@@ -8,6 +8,8 @@ from util.imageUtil import *
 
 fakeRandomPath = 'mask/mask_r30k_29.mat'
 fakeRandomPath_15 = 'mask/mask_r10k_15.mat'
+fakeRandomPath_10 = 'mask/mask_r4k_10.mat'
+fakeRandomPath_5 = 'mask/mask_r4k_5.mat'
 
 def generateDatasetName(configs):
     datasetName = ""
@@ -19,16 +21,26 @@ def generateDatasetName(configs):
 
     return datasetName[:-1]
 
-def getDataloader(dataType = '1in1',mode = 'train', batchSize = 1):
+def getDataloader(dataType = '1in1',mode = 'train', batchSize = 1, crossValid = 0):
     pathDirData = 'data/cardiac_ktz/'
-    if(mode == 'train'):
-        shuffleFlag = True
-        a = 1
-        b = 31
+    if(crossValid == 0):
+        crossValidCode = ''
+        if(mode == 'train'):
+            shuffleFlag = True
+            r = list(range(1,31))
+        else:
+            shuffleFlag = False
+            r = list(range(31,34))
     else:
-        shuffleFlag = False
-        a = 31
-        b = 34
+        assert crossValid in range(1, 11), "crossValid out of range"
+        crossValidCode = 'crossValid'+str(crossValid)
+        if(mode == 'train'):
+            shuffleFlag = True
+            r = list(range(1, (crossValid - 1) * 3 + 1))
+            r.extend(list(range(crossValid * 3 + 1, 34)))
+        else:
+            shuffleFlag = False
+            r = list(range((crossValid - 1) * 3 + 1, crossValid * 3 + 1))
     if('reduce' in dataType):
         reduceMode = "reduce"
     else:
@@ -64,6 +76,10 @@ def getDataloader(dataType = '1in1',mode = 'train', batchSize = 1):
         samplingMode = 'random'
     elif(('r15' in dataType) or ('rand15' in dataType)):
         samplingMode = 'rand15'
+    elif(('r10' in dataType) or ('rand10' in dataType)):
+        samplingMode = 'rand10'
+    elif(('r5' in dataType) or ('rand5' in dataType)):
+        samplingMode = 'rand5'
     elif('fakeRandom' in dataType):
         samplingMode = 'fakeRandom'
     elif('nolattice' in dataType):
@@ -80,20 +96,20 @@ def getDataloader(dataType = '1in1',mode = 'train', batchSize = 1):
     else:
         npatch = 1
         strNpatch = ""
-    datasetName = generateDatasetName([mainType,dataMode,strNpatch,staticPrefix+samplingMode,mode,reduceMode])
+    datasetName = generateDatasetName([mainType,dataMode,strNpatch,staticPrefix+samplingMode,mode,reduceMode,crossValidCode])
     print('#Generating dataset:'+datasetName)
     #=============================
     if(mainType == '1in1'):
         #dataset = dataset_xin1(a, b, dataMode, samplingMode, 1, reduceMode)
-        dataset = dataset_1in1_noImg(a, b, dataMode, samplingMode, reduceMode, staticSampling)
+        dataset = dataset_1in1_noImg(r, dataMode, samplingMode, reduceMode, staticSampling)
     elif(mainType == '1in1old'):
         assert False, "abandoned mainType in dataType"
-        dataset = dataset_xin1(a, b, dataMode, samplingMode, 1, reduceMode)
+        dataset = dataset_xin1(r, dataMode, samplingMode, 1, reduceMode)
     elif(mainType == '3in1'):
         assert False, "abandoned mainType in dataType"
-        dataset = dataset_xin1(a, b, dataMode, samplingMode, 3, reduceMode)
+        dataset = dataset_xin1(r, dataMode, samplingMode, 3, reduceMode)
     elif(mainType == '3d'):
-        dataset = dataset_3d_noImg(a, b, dataMode, samplingMode, npatch, staticSampling)
+        dataset = dataset_3d_noImg(r, dataMode, samplingMode, npatch, staticSampling)
     elif(mainType == 'gma'):
         dataset = dataset_3d_gma(dataMode,samplingMode = 'rand15', npatch = 8)
     else:
@@ -105,7 +121,7 @@ def getDataloader(dataType = '1in1',mode = 'train', batchSize = 1):
     return data_loader,datasize
 
 class dataset_3d(data.Dataset):
-    def __init__(self, iStart = 1,iEnd = 31, mode = 'abs', samplingMode = 'default', npatch = 1):
+    def __init__(self, iRange = range(1,31), mode = 'abs', samplingMode = 'default', npatch = 1):
         if(samplingMode == 'fakeRandom'):
             mDic = sio.loadmat(fakeRandomPath)
             miList = mDic['RAll']
@@ -117,7 +133,7 @@ class dataset_3d(data.Dataset):
         self.mList = []
         #self.mode = mode
         offset=0
-        for i in range(iStart,iEnd):
+        for i in iRange:
             for z in range(0,5): #0,4
                 for p in range(npatch):
                     x = np.zeros((1,20,256,int(256/npatch)))
@@ -170,7 +186,7 @@ class dataset_3d(data.Dataset):
         return len(self.xList)
     
 class dataset_xin1(data.Dataset):
-    def __init__(self, iStart = 1,iEnd = 31, mode = 'abs', samplingMode = 'default', xin1 = 1, reduceMode = ""):
+    def __init__(self, iRange = range(1,31), mode = 'abs', samplingMode = 'default', xin1 = 1, reduceMode = ""):
         assert xin1 == 1, "xin1 not support now"
         self.xin1 = xin1
         if(samplingMode == 'random'):
@@ -191,7 +207,7 @@ class dataset_xin1(data.Dataset):
             tList = range(1,21)
         if('nolattice_offset' in samplingMode):
             offset = int(samplingMode[-1])
-        for i in range(iStart,iEnd): 
+        for i in iRange: 
             for z in range(0,5): #0,4
                 for t in tList: #1,20
                     #index = (i-iStart)*100+z*20+t-1
@@ -249,7 +265,7 @@ class dataset_xin1(data.Dataset):
         return len(self.xList)
 
 class dataset_3d_noImg(data.Dataset):
-    def __init__(self, iStart = 1,iEnd = 31, mode = 'abs', samplingMode = 'default', npatch = 1, staticRandom = False):
+    def __init__(self, iRange = range(1,31), mode = 'abs', samplingMode = 'default', npatch = 1, staticRandom = False):
         if(samplingMode == 'random'):
             mDic = sio.loadmat(fakeRandomPath)
             miList = mDic['RAll']
@@ -261,7 +277,7 @@ class dataset_3d_noImg(data.Dataset):
         assert mode in ['complex','abs'], "real mode is abandoned"
         self.mode = mode
         offset=0
-        for i in range(iStart,iEnd):
+        for i in iRange:
             for z in range(0,5): #0,4
                 for p in range(npatch):
                     #x = np.zeros((1,20,256,int(256/npatch)))
@@ -313,12 +329,18 @@ class dataset_3d_noImg(data.Dataset):
     
 
 class dataset_1in1_noImg(data.Dataset):
-    def __init__(self, iStart = 1,iEnd = 31, mode = 'abs', samplingMode = 'default', reduceMode = "", staticRandom = False):
+    def __init__(self, iRange = range(1,31), mode = 'abs', samplingMode = 'default', reduceMode = "", staticRandom = False):
         if(samplingMode == 'random'):
             mDic = sio.loadmat(fakeRandomPath)
             miList = mDic['RAll']
         elif(samplingMode == 'rand15'):
             mDic = sio.loadmat(fakeRandomPath_15)
+            miList = mDic['RAll']
+        elif(samplingMode == 'rand10'):
+            mDic = sio.loadmat(fakeRandomPath_10)
+            miList = mDic['RAll']
+        elif(samplingMode == 'rand5'):
+            mDic = sio.loadmat(fakeRandomPath_5)
             miList = mDic['RAll']
         self.yList = []
         self.mList = []
@@ -332,7 +354,7 @@ class dataset_1in1_noImg(data.Dataset):
             tList = range(1,21)
         if('nolattice_offset' in samplingMode):
             offset = int(samplingMode[-1])
-        for i in range(iStart,iEnd):
+        for i in iRange:
             for z in range(0,5): #0,4
                 for t in tList: #1,20
                     #index = (i-iStart)*100+z*20+t-1
@@ -355,11 +377,11 @@ class dataset_1in1_noImg(data.Dataset):
                     
                     y = np.zeros((1,256,256))
                     if(mode == 'abs'):
-                        #x = np.zeros((1,256,256))
+                        # x = np.zeros((1,256,256))
                         y = np.zeros((1,256,256))
-                        #m = mask
+                        # m = mask
                     elif(mode == 'complex'):
-                        #x = np.zeros((2,256,256))
+                        # x = np.zeros((2,256,256))
                         y = np.zeros((2,256,256))
                     else:
                         assert False,"real mode is abandoned"
@@ -406,14 +428,14 @@ class dataset_3d_gma(data.Dataset):
         self.mode = mode
         offset=0
         for p in range(npatch):
-            #x = np.zeros((1,20,256,int(256/npatch)))
+            # x = np.zeros((1,20,256,int(256/npatch)))
             y = np.zeros((1,20,256,int(256/npatch)))
             if(mode == 'complex'):
-                #x = np.zeros((2,20,256,int(256/npatch)))
+                # x = np.zeros((2,20,256,int(256/npatch)))
                 y = np.zeros((2,20,256,int(256/npatch)))
             m = np.zeros((20,256,int(256/npatch)))
             for t in range(1,21): #1,20
-                #filename = "data/cardiac_ktz/mr_heart_p%02dt%02dz%d.png" % (i,t,z)
+                # filename = "data/cardiac_ktz/mr_heart_p%02dt%02dz%d.png" % (i,t,z)
                 filename = "data/gma/seq_%d.png" % (t)
                 im = Image.open(filename)
                 im_np = np.array(im).astype(np.float32)/255.
@@ -440,7 +462,7 @@ class dataset_3d_gma(data.Dataset):
                     offset = (offset+1)%8
                 else:
                     offset = (offset+1)%4
-            #self.xList.append(x)
+            # self.xList.append(x)
             self.yList.append(y)
             self.mList.append(m)
 

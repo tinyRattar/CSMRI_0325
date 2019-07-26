@@ -4,14 +4,17 @@ import matplotlib.pyplot as plt
 import torch
 from PIL import Image
 
-def imshow(img,mode='pil',overlap=False):
+def imshow(img,mode='pil',vmax=0,overlap=False):
     #assert False, no more imshow
     if(mode == 'cv'):
         b,g,r = cv2.split(img)
         im_np = cv2.merge([r,g,b])
         plt.imshow(im_np)
     elif(mode == 'pil'):
-        plt.imshow(img)
+        if(vmax!=0):
+            plt.imshow(img,vmax=vmax)
+        else:
+            plt.imshow(img)
     elif(mode == 'g'):
         plt.imshow(img,'gray')
     elif(mode == 'b'):
@@ -99,7 +102,7 @@ def subsampling_mask(srcImg,offset=0, mode = "default", mi = None):
     
     return mask
 
-def addZoomIn(img, x0 = 87, y0 = 135,offsetX=32,offsetY=0,scale=2,border = 0):
+def addZoomIn(img, x0 = 87, y0 = 135,offsetX=32,offsetY=0,scale=3,border = 0):
     if(len(img.shape)==3):
         im1 = np.zeros_like(img)
         im1 = img.copy()
@@ -109,14 +112,14 @@ def addZoomIn(img, x0 = 87, y0 = 135,offsetX=32,offsetY=0,scale=2,border = 0):
             im1[:,:,i] = img
     if(offsetY==0):
         offsetY = offsetX
-    scale = 3
+    #scale = 3
     imzoomin = im1[y0:y0+offsetY,x0:x0+offsetX]
     imzoomin = cv2.resize(imzoomin,((offsetY*scale,offsetX*scale)))
     cv2.rectangle(im1,(x0,y0),(x0+offsetX,y0+offsetY),(255,0,0),1)
     im1[256-offsetY*scale:,256-offsetX*scale:] = imzoomin
     if(border>0):
-        im[-32-border:-32,256-offsetX*scale-border:] = (0,0,0)
-        im[256-offsetY*scale-border:,-32-border:-32] = (0,0,0)
+        im1[-offsetX*scale-border:-offsetX*scale,256-offsetX*scale-border:] = (0,0,0)
+        im1[256-offsetY*scale-border:,-offsetX*scale-border:-offsetX*scale] = (0,0,0)
     
     return im1
 

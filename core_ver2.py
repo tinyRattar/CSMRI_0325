@@ -66,9 +66,11 @@ class core():
         paramNum = paramNumber(self.net)
         print("#Number of network parameters:%d"%paramNum)
 
+        self.crossValid = int(self.config['general']['crossValid'])
+
         if(not isEvaluate):
-            self.trainloader,self.trainsetSize = getDataloader(self.config['general']['dataType'],'train',self.batchSize)
-        self.testloader,self.testsetSize = getDataloader(self.config['general']['dataType'],'test',1)
+            self.trainloader,self.trainsetSize = getDataloader(self.config['general']['dataType'],'train',self.batchSize,self.crossValid)
+        self.testloader,self.testsetSize = getDataloader(self.config['general']['dataType'],'test',1,self.crossValid)
 
         if('FromLSF' in configPath):
             self.record = Recoder('resultFromLSF/' + self.config['general']['path'],self.saveEpoch*self.maxSaved)

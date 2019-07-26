@@ -131,7 +131,7 @@ def getNet(netType):
     elif(netType == 'CN_dOri_c5_complex_tr_trick4'):
         return CN_Dense(2,c=5,dilate=True, useOri = True, transition=0.5, trick = 4)
     elif(netType == 'CN_dOri_c5_complex_tr_trick2n4'):
-        return CN_Dense(2,c=5,dilate=True, useOri = True, transition=0.5, trick = [2,2,2,2,4])
+        return CN_Dense(2,c=5,dilate=True, useOri = True, transition=0.5, trick = [2, 2, 2, 2, 4])
     elif(netType == 'CN_dOri_c5_complex_tr_trick4_gr'):
         return CN_Dense(2,c=5,dilate=True, useOri = True, transition=0.5, trick = 4, globalResSkip = True)
     elif(netType == 'CN_dOri_c10_complex_tr_trick2'):
@@ -140,6 +140,23 @@ def getNet(netType):
         return CN_Dense(2,c=10,dilate=True, useOri = True, transition=0.5, trick = 4)
     elif(netType == 'CN_dOri_c10_complex_tr_trick4_se'):
         return CN_Dense(2,c=10,dilate=True, useOri = True, transition=0.5, trick = 4, useSE = True)
+    #-----------cascadeNumber----
+    elif(netType == 'CN_dOri_c1_complex_tr_trick2'):
+        return CN_Dense(2,c=1,dilate=True, useOri = True, transition=0.5, trick = 2)
+    elif(netType == 'CN_dOri_c2_complex_tr_trick2'):
+        return CN_Dense(2,c=2,dilate=True, useOri = True, transition=0.5, trick = 2)
+    elif(netType == 'CN_dOri_c3_complex_tr_trick2'):
+        return CN_Dense(2,c=3,dilate=True, useOri = True, transition=0.5, trick = 2)
+    elif(netType == 'CN_dOri_c4_complex_tr_trick2'):
+        return CN_Dense(2,c=4,dilate=True, useOri = True, transition=0.5, trick = 2)
+    elif(netType == 'CN_dOri_c6_complex_tr_trick2'):
+        return CN_Dense(2,c=6,dilate=True, useOri = True, transition=0.5, trick = 2)
+    elif(netType == 'CN_dOri_c7_complex_tr_trick2'):
+        return CN_Dense(2,c=7,dilate=True, useOri = True, transition=0.5, trick = 2)
+    elif(netType == 'CN_dOri_c8_complex_tr_trick2'):
+        return CN_Dense(2,c=8,dilate=True, useOri = True, transition=0.5, trick = 2)
+    elif(netType == 'CN_dOri_c9_complex_tr_trick2'):
+        return CN_Dense(2,c=9,dilate=True, useOri = True, transition=0.5, trick = 2)
     #-----------globalDense----
     elif(netType == 'CN_Ori_c5_complex_tr_gd'):
         return CN_Dense(2,c=5,dilate=False, useOri = True, transition=0.5, globalDense = True)

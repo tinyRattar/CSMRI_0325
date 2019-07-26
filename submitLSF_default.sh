@@ -1,8 +1,8 @@
 #!/bin/sh
 #BSUB -q newgpu
-#BSUB -o log/30_c10_t2
-#BSUB -J 30_c10_t2
+#BSUB -o log/15f_cv8
+#BSUB -J cv8
 #BSUB -R "select[ngpus >0] rusage[ngpus_excl_p=1]"
 
 echo ======Job Start======
-python main.py sr30f_c10_t2
+python main.py cv8

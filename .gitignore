@@ -4,3 +4,4 @@ cardiac_ktz/
 /log
 data
 __pycache__/
+*.ini

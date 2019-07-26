@@ -1,4 +1,4 @@
-remotePath=rat@49.52.10.116:/home/rat/CSMRI_0325
+remotePath=rat@49.52.10.27:/home/rat/CSMRI_0325
 
 echo rsync from remote:${remotePath}
 

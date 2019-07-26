@@ -268,13 +268,16 @@ class dataConsistencyLayer_static(nn.Module):
         self.trick = trick
 #         self.lamda = Parameter(torch.Tensor(1))
 #         self.lamda.data.uniform_(0, 1)
+        tempConvList = []
         if(self.trick in [3,4]):
             if(conv is None):
                 if(dynamic):
                     conv = nn.Conv3d(4,2,1,padding=0)
                 else:
                     conv = nn.Conv2d(4,2,1,padding=0)
-            self.trickConv = conv
+            #self.trickConv = conv
+            tempConvList.append(conv)
+        self.trickConvList = nn.ModuleList(tempConvList)
 
     def dc_operate(self, xin, y, mask):
         #iScale = self.lamda/(1+self.lamda)
@@ -331,14 +334,14 @@ class dataConsistencyLayer_static(nn.Module):
             xt = abs4complex(xt)
             xdc2 = self.dc_operate(xt, y, mask)
             xdc = torch.cat([xdc1,xdc2],1)
-            xt = self.trickConv(xdc)
+            xt = self.trickConvList[0](xdc)
             #index += 1
         elif(self.trick == 4):
             xdc1 = self.dc_operate(xt, y, mask)
             xabs = abs4complex(xdc1)
             xdc2 = self.dc_operate(xabs, y, mask)
             xdc = torch.cat([xdc1,xdc2],1)
-            xt = self.trickConv(xdc)
+            xt = self.trickConvList[0](xdc)
             #index += 1
         else:
             xt = self.dc_operate(xt, y, mask)

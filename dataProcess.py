@@ -98,7 +98,7 @@ def getDataloader(dataType = '1in1',mode = 'train', batchSize = 1, crossValid = 
     #=============================
     if(dataset == 'FastMRI'):
         dataset = FastMRI_1in1_noImg(shuffleFlag, dataMode, samplingMode, reduceMode, staticSampling)
-    if(mainType == '1in1'):
+    elif(mainType == '1in1'):
         dataset = dataset_1in1_noImg(r, dataMode, samplingMode, reduceMode, staticSampling)
     else:
         assert False,"wrong dataset type"

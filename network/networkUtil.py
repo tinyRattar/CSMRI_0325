@@ -4,34 +4,6 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.nn.parameter import Parameter
 
-# class convBlock(nn.Module):
-#     def __init__(self,inChannel=2, features=64, kernelSize=3, dilateMulti = 1,layer = 5):
-#         super(convBlock, self).__init__()
-#         self.layer = layer
-        
-#         templayerList = []
-#         dilate = 1
-#         for i in range(0, self.layer - 1):
-#             if(i == 0):
-#                 tempConv = nn.Conv2d(2, features, kernelSize, padding = int(dilate * (kernelSize - 1) / 2), dilation = dilate)
-#             else:
-#                 tempConv = nn.Conv2d(features, features, kernelSize, padding = int(dilate * (kernelSize - 1) / 2), dilation = dilate)
-#             templayerList.append(tempConv)
-#             dilate = dilate * dilateMulti
-#         tempConv = nn.Conv2d(features, 2, kernelSize, padding = int(dilate * (kernelSize - 1) / 2), dilation = dilate)
-#         templayerList.append(tempConv)
-#         self.layerList = nn.ModuleList(templayerList)
-#         self.relu = nn.ReLU()
-    
-#     def forward(self,x1):
-#         x = x1
-#         for i in range(0, self.layer - 1):
-#             x = self.layerList[i](x)
-#             x = self.relu(x)
-#         y = self.layerList[self.layer - 1](x)
-        
-#         return y
-
 class denseBlockLayer(nn.Module):
     def __init__(self,inChannel=64, outChannel=64, kernelSize=3, inception = False, dilateScale = 1, activ = 'ReLU'):
         super(denseBlockLayer, self).__init__()
@@ -167,7 +139,6 @@ class denseBlock_origin(nn.Module):
             
     def forward(self,x):
         for i in range(0, self.layer):
-            #print(i)
             tempY = self.layerList[i](x)
             x = torch.cat((x, tempY), 1)
             
@@ -215,8 +186,6 @@ class dataConsistencyLayer(nn.Module):
         self.lamda = Parameter(torch.Tensor(1))
         self.lamda.data.uniform_(0, 1)
         self.isStatic = isStatic
-        #self.lamda.data = torch.Tensor([initLamda])
-        #self.lamda = initLamda
     
     def forward(self, xin, y, mask):
         if(self.isStatic):
@@ -227,25 +196,20 @@ class dataConsistencyLayer(nn.Module):
             if(xin.shape[1]==1):
                 emptyImag = torch.zeros_like(xin)
                 xin_c = torch.cat([xin,emptyImag],1).permute(0,2,3,1)
-                #xGT_c = torch.cat([y,emptyImag],1).permute(0,2,3,1)
             else:
                 xin_c = xin.permute(0,2,3,1)
-                #xGT_c = y.permute(0,2,3,1)
             mask = mask.reshape(mask.shape[0],mask.shape[1],mask.shape[2],1)
         elif(len(xin.shape)==5):
             if(xin.shape[1]==1):
                 emptyImag = torch.zeros_like(xin)
                 xin_c = torch.cat([xin,emptyImag],1).permute(0,2,3,4,1)
-                #xGT_c = torch.cat([y,emptyImag],1).permute(0,2,3,4,1)
             else:
                 xin_c = xin.permute(0,2,3,4,1)
-                #xGT_c = y.permute(0,2,3,4,1)
             mask = mask.reshape(mask.shape[0],mask.shape[1],mask.shape[2],mask.shape[3],1)
         else:
             assert False, "xin shape length has to be 4(2d) or 5(3d)"
         
         xin_f = torch.fft(xin_c,2, normalized=self.normalized)
-        #xGT_f = torch.fft(xGT_c,2, normalized=self.normalized)
         xGT_f = y
         
         xout_f = xin_f + (- xin_f + xGT_f) * iScale * mask
@@ -256,7 +220,6 @@ class dataConsistencyLayer(nn.Module):
         else:
             xout = xout.permute(0,4,1,2,3)
         if(xin.shape[1]==1):
-            # xout = xout[:,0:1]
             xout = torch.sqrt(xout[:,0:1]*xout[:,0:1]+xout[:,1:2]*xout[:,1:2])
         
         return xout
@@ -264,10 +227,8 @@ class dataConsistencyLayer(nn.Module):
 class dataConsistencyLayer_static(nn.Module):
     def __init__(self, initLamda = 1, trick = 0, dynamic = False, conv = None):
         super(dataConsistencyLayer_static, self).__init__()
-        self.normalized = True #norm == 'ortho'
+        self.normalized = True 
         self.trick = trick
-#         self.lamda = Parameter(torch.Tensor(1))
-#         self.lamda.data.uniform_(0, 1)
         tempConvList = []
         if(self.trick in [3,4]):
             if(conv is None):
@@ -275,36 +236,29 @@ class dataConsistencyLayer_static(nn.Module):
                     conv = nn.Conv3d(4,2,1,padding=0)
                 else:
                     conv = nn.Conv2d(4,2,1,padding=0)
-            #self.trickConv = conv
             tempConvList.append(conv)
         self.trickConvList = nn.ModuleList(tempConvList)
 
     def dc_operate(self, xin, y, mask):
-        #iScale = self.lamda/(1+self.lamda)
         iScale = 1
         if(len(xin.shape)==4):
             if(xin.shape[1]==1):
                 emptyImag = torch.zeros_like(xin)
                 xin_c = torch.cat([xin,emptyImag],1).permute(0,2,3,1)
-                #xGT_c = torch.cat([y,emptyImag],1).permute(0,2,3,1)
             else:
                 xin_c = xin.permute(0,2,3,1)
-                #xGT_c = y.permute(0,2,3,1)
             mask = mask.reshape(mask.shape[0],mask.shape[1],mask.shape[2],1)
         elif(len(xin.shape)==5):
             if(xin.shape[1]==1):
                 emptyImag = torch.zeros_like(xin)
                 xin_c = torch.cat([xin,emptyImag],1).permute(0,2,3,4,1)
-                #xGT_c = torch.cat([y,emptyImag],1).permute(0,2,3,4,1)
             else:
                 xin_c = xin.permute(0,2,3,4,1)
-                #xGT_c = y.permute(0,2,3,4,1)
             mask = mask.reshape(mask.shape[0],mask.shape[1],mask.shape[2],mask.shape[3],1)
         else:
             assert False, "xin shape length has to be 4(2d) or 5(3d)"
         
         xin_f = torch.fft(xin_c,2, normalized=self.normalized)
-        #xGT_f = torch.fft(xGT_c,2, normalized=self.normalized)
         xGT_f = y
         
         xout_f = xin_f + (- xin_f + xGT_f) * iScale * mask
@@ -315,7 +269,6 @@ class dataConsistencyLayer_static(nn.Module):
         else:
             xout = xout.permute(0,4,1,2,3)
         if(xin.shape[1]==1):
-            # xout = xout[:,0:1]
             xout = torch.sqrt(xout[:,0:1]*xout[:,0:1]+xout[:,1:2]*xout[:,1:2])
         
         return xout
@@ -335,14 +288,12 @@ class dataConsistencyLayer_static(nn.Module):
             xdc2 = self.dc_operate(xt, y, mask)
             xdc = torch.cat([xdc1,xdc2],1)
             xt = self.trickConvList[0](xdc)
-            #index += 1
         elif(self.trick == 4):
             xdc1 = self.dc_operate(xt, y, mask)
             xabs = abs4complex(xdc1)
             xdc2 = self.dc_operate(xabs, y, mask)
             xdc = torch.cat([xdc1,xdc2],1)
             xt = self.trickConvList[0](xdc)
-            #index += 1
         else:
             xt = self.dc_operate(xt, y, mask)
 
@@ -361,22 +312,16 @@ def kspaceFilter(xin, mask):
         if(xin.shape[1]==1):
             emptyImag = torch.zeros_like(xin)
             xin_c = torch.cat([xin,emptyImag],1).permute(0,2,3,1)
-            #xGT_c = torch.cat([y,emptyImag],1).permute(0,2,3,1)
         else:
             xin_c = xin.permute(0,2,3,1)
-            #xGT_c = y.permute(0,2,3,1)
         mask = mask.reshape(mask.shape[0],mask.shape[1],mask.shape[2],1)
     elif(len(xin.shape)==5):
         if(xin.shape[1]==1):
             emptyImag = torch.zeros_like(xin)
             xin_c = torch.cat([xin,emptyImag],1).permute(0,2,3,4,1)
-            #xGT_c = torch.cat([y,emptyImag],1).permute(0,2,3,4,1)
         else:
             xin_c = xin.permute(0,2,3,4,1)
-            #xGT_c = y.permute(0,2,3,4,1)
-        #mask = mask.reshape(1,1,mask.shape[0],mask.shape[1],1)
         assert False,"3d not support"
-        #mask = mask.reshape(mask.shape[0],mask.shape[1],mask.shape[2],mask.shape[3],1)
     else:
         assert False, "xin shape length has to be 4(2d) or 5(3d)"
     
@@ -390,7 +335,6 @@ def kspaceFilter(xin, mask):
     else:
         xout = xout.permute(0,4,1,2,3)
     if(xin.shape[1]==1):
-        # xout = xout[:,0:1]
         xout = torch.sqrt(xout[:,0:1]*xout[:,0:1]+xout[:,1:2]*xout[:,1:2])
     
     return xout

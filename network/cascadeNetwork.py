@@ -4,7 +4,6 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 from .networkUtil import *
-from util import gaussianFilter
 
 class convBlock(nn.Module):
     def __init__(self, ioChannel = 2, iConvNum = 5, f=32, dilationLayer = False):
@@ -207,12 +206,6 @@ class CN_Dense(nn.Module):
             else:
                 assert False, "no such subnetType:" + subnetType
             subNetClassList.append(subNetClass)
-        # if(subnetType == 'Dense'):
-        #     subNetClass = subDenseNet
-        # elif(subnetType == 'Unet'):
-        #     subNetClass = subUnet
-        # else:
-        #     assert False, "no such subnetType:"+subnetType
         templayerList = []
         for i in range(c):
             if(self.globalSkip):
@@ -296,220 +289,14 @@ class CN_Conv(nn.Module):
                     xdc2 = layer(xt, y, mask)
                     xdc = torch.cat([xdc1,xdc2],1)
                     xt = self.trickConvList[0](xdc)
-                    #index += 1
                 elif(self.trick == 4):
                     xdc1 = layer(xt, y, mask)
                     xabs = abs4complex(xdc1)
                     xdc2 = layer(xabs, y, mask)
                     xdc = torch.cat([xdc1,xdc2],1)
                     xt = self.trickConvList[0](xdc)
-                    #index += 1
                 else:
                     xt = layer(xt, y, mask)
                 flag = True
         
         return xt
-
-class CN_SkipConv(nn.Module):
-    def __init__(self, inChannel = 2, d = 5, c = 5, fNum = 32, dilate = False, trick = 0, skipMode = 0):
-        super(CN_SkipConv, self).__init__()
-        assert c==5, "only c = 5 is acceptable in skip mode"
-        self.trick = trick
-        self.skipMode = skipMode
-        
-        templayerList = []
-        for i in range(c):
-            if(i<2 or (i<3 and self.skipMode==0)):
-                tmpSubNet = convBlock(2, d, fNum, dilate)
-            else:
-                tmpSubNet = convBlock(4, d, fNum, dilate)
-            tmpDF = dataConsistencyLayer_static()
-            templayerList.append(tmpSubNet)
-            templayerList.append(tmpDF)
-        self.layerList = nn.ModuleList(templayerList)
-
-        if(self.trick in [3,4]):
-            tmpConvList = []
-            for i in range(c):
-                tempConv = nn.Conv2d(4,2,1,padding=0)
-                tmpConvList.append(tempConv)
-            self.trickConvList = nn.ModuleList(tmpConvList)
-
-    def trickForward(self,x,y,mask,layer,index):
-        xt = x
-        if(self.trick == 1):
-            xt = abs4complex(xt)
-            xt = layer(xt, y, mask)
-        elif(self.trick == 2):
-            xt = layer(xt, y, mask)
-            xt = abs4complex(xt)
-            xt = layer(xt, y, mask)
-        elif(self.trick == 3):
-            xdc1 = layer(xt, y, mask)
-            xt = abs4complex(xt)
-            xdc2 = layer(xt, y, mask)
-            xdc = torch.cat([xdc1,xdc2],1)
-            xt = self.trickConvList[index](xdc)
-        elif(self.trick == 4):
-            xdc1 = layer(xt, y, mask)
-            xabs = abs4complex(xdc1)
-            xdc2 = layer(xabs, y, mask)
-            xdc = torch.cat([xdc1,xdc2],1)
-            xt = self.trickConvList[index](xdc)
-        else:
-            xt = layer(xt, y, mask)
-
-        return xt
-        
-    def forward(self, x1, y, mask):
-        if(self.skipMode == 0):
-            x2 = self.layerList[0](x1)
-            x3 = self.trickForward(x2,y,mask,self.layerList[1],0)
-
-            x4 = self.layerList[2](x3)
-            x5 = self.trickForward(x4,y,mask,self.layerList[3],1)
-
-            x6 = self.layerList[4](x5)
-            x7 = self.trickForward(x6,y,mask,self.layerList[5],2)
-
-            x7c = torch.cat([x7,x5],1)
-            x8 = self.layerList[6](x7c)
-            x9 = self.trickForward(x8,y,mask,self.layerList[7],3)
-
-            x9c = torch.cat([x9,x3],1)
-            x10 = self.layerList[8](x9c)
-            x11 = self.trickForward(x10,y,mask,self.layerList[9],4)
-
-            return x11
-        else:
-            x2 = self.layerList[0](x1)
-            x3 = self.trickForward(x2,y,mask,self.layerList[1],0)
-
-            x4 = self.layerList[2](x3)
-            x5 = self.trickForward(x4,y,mask,self.layerList[3],1)
-
-            x5c = torch.cat([x5,x4],1)
-            x6 = self.layerList[4](x5c)
-            x7 = self.trickForward(x6,y,mask,self.layerList[5],2)
-
-            x7c = torch.cat([x7,x2],1)
-            x8 = self.layerList[6](x7c)
-            x9 = self.trickForward(x8,y,mask,self.layerList[7],3)
-
-            x9c = torch.cat([x9,x1],1)
-            x10 = self.layerList[8](x9c)
-            x11 = self.trickForward(x10,y,mask,self.layerList[9],4)
-
-            return x11
-
-class DualNetwork_HnL(nn.Module):
-    def __init__(self, inChannel = 2, d = 5, c = 5, fNum = 16, growthRate = 16, dilate = False, activation = 'ReLU',  \
-        useOri = False, transition = 0.5, trick = 0, globalDense = False, useSE = False, shareHL = False, fuseMode = 'Kspace'):
-        super(DualNetwork_HnL, self).__init__()
-        self.shareHL = shareHL
-        self.fuseMode = fuseMode
-        if(isinstance(c,int)):
-            ch = c
-            cl = c
-            cf = c
-        else:
-            if(len(c)==2):
-                ch = c[0]
-                cl = c[0]
-                cf = c[1]
-            else:
-                ch,cl,cf = c
-        self.highPassNetwork = CN_Dense(inChannel,d,ch,fNum,growthRate,dilate,activation,useOri,transition,trick,globalDense,useSE)
-        if(not self.shareHL):
-            self.lowPassNetwork = CN_Dense(inChannel,d,cl,fNum,growthRate,dilate,activation,useOri,transition,trick,globalDense,useSE)
-        if(self.fuseMode == 'Kspace'):
-            self.fuseNetwork = CN_Dense(inChannel,d,cf,fNum,growthRate,dilate,activation,useOri,transition,trick,globalDense,useSE)
-        else:
-            self.infuseNetwork = CN_Dense((2*inChannel,inChannel),d,1,fNum,growthRate,dilate,activation,useOri,transition,trick,globalDense,useSE)
-            self.fuseNetwork = CN_Dense(inChannel,d,cf-1,fNum,growthRate,dilate,activation,useOri,transition,trick,globalDense,useSE)
-
-        highPassMask_np = gaussianFilter(256,256,64,True)
-        lowPassMask_np = gaussianFilter(256,256,64,False)
-        self.highPassMask = torch.from_numpy(highPassMask_np).type(torch.cuda.FloatTensor).reshape(1,256,256)
-        self.lowPassMask = torch.from_numpy(lowPassMask_np).type(torch.cuda.FloatTensor).reshape(1,256,256)
-
-    def getSubNetwork(self, index):
-        if(index == 1):
-            return self.highPassNetwork
-        elif(index == 2):
-            if(self.shareHL):
-                return self.highPassNetwork
-            else:
-                return self.lowPassNetwork
-        elif(index == 3):
-            return self.fuseNetwork
-        else:
-            return self
-
-    def kspaceFilter(self, x, highpass = True):
-        if(highpass):
-            return kspaceFilter(x, self.highPassMask)
-        else:
-            return kspaceFilter(x, self.lowPassMask)
-
-    def forward(self, x1, y, mask, stage = 0):
-        self.highPassMask = self.highPassMask.to(x1.device)
-        self.lowPassMask = self.lowPassMask.to(x1.device)
-        x_hp = kspaceFilter(x1,self.highPassMask)
-        x_lp = kspaceFilter(x1,self.lowPassMask)
-        y_hp = y * self.highPassMask.reshape(1,256,256,1)
-        y_lp = y * self.lowPassMask.reshape(1,256,256,1)
-
-        xg_hp = self.highPassNetwork(x_hp,y_hp,mask)
-        if(stage == 1):
-            return xg_hp
-        if(self.shareHL):
-            xg_lp = self.highPassNetwork(x_lp,y_lp,mask)
-        else:
-            xg_lp = self.lowPassNetwork(x_lp,y_lp,mask)
-        if(stage == 2):
-            return xg_lp
-        #x_fuse = torch.cat([xg_hp[:,0:1],xg_lp[:,0:1]],1)
-        if(self.fuseMode == 'Kspace'):
-            x_fuse = kspaceFuse(xg_hp,xg_lp)
-        else:
-            x_fuse = torch.cat([xg_hp,xg_lp],1)
-            x_fuse = self.infuseNetwork(x_fuse,y,mask)
-        xg = self.fuseNetwork(x_fuse,y,mask)
-
-        return xg
-
-class DualNetwork_debug(nn.Module):
-    def __init__(self, inChannel = 2, d = 5, c = 5, fNum = 16, growthRate = 16, dilate = False, activation = 'ReLU',  \
-        useOri = False, transition = 0.5, trick = 0, globalDense = False, useSE = False):
-        super(DualNetwork_debug, self).__init__()
-        self.highPassNetwork = CN_Dense(inChannel,d,c,fNum,growthRate,dilate,activation,useOri,transition,trick,globalDense,useSE)
-        self.lowPassNetwork = CN_Dense(inChannel,d,c,fNum,growthRate,dilate,activation,useOri,transition,trick,globalDense,useSE)
-        self.fuseNetwork = CN_Dense(inChannel,d,c,fNum,growthRate,dilate,activation,useOri,transition,trick,globalDense,useSE)
-
-        highPassMask_np = gaussianFilter(256,256,64,True)
-        lowPassMask_np = gaussianFilter(256,256,64,False)
-        self.highPassMask = torch.from_numpy(highPassMask_np).type(torch.cuda.FloatTensor).reshape(1,256,256)
-        self.lowPassMask = torch.from_numpy(lowPassMask_np).type(torch.cuda.FloatTensor).reshape(1,256,256)
-
-        self.dc = dataConsistencyLayer_static()
-
-
-    def forward(self, x1, y, mask):
-        self.highPassMask = self.highPassMask.to(x1.device)
-        self.lowPassMask = self.lowPassMask.to(x1.device)
-        x_hp = kspaceFilter(x1,self.highPassMask)
-        x_lp = kspaceFilter(x1,self.lowPassMask)
-        y_hp = y * self.highPassMask.reshape(1,256,256,1)
-        y_lp = y * self.lowPassMask.reshape(1,256,256,1)
-
-        xg_hp = self.dc(x_hp,y_hp,mask)
-        xg_lp = self.dc(x_lp,y_hp,mask)
-        # xg_hp = self.highPassNetwork(x_hp,y_hp,mask)
-        # xg_lp = self.lowPassNetwork(x_lp,y_hp,mask)
-        # x_fuse = torch.cat([xg_hp[:,0:1],xg_lp[:,0:1]],1)
-
-        xg = kspaceFuse(xg_hp,xg_lp)
-        # xg = self.fuseNetwork(x_fuse,y,mask)
-
-        return xg

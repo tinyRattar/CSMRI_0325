@@ -1,6 +1,4 @@
 import matplotlib.pyplot as plt
-#%matplotlib inline
-#import torchvision
 import torch
 import torch.nn as nn
 import torch.optim
@@ -15,7 +13,7 @@ from skimage.measure import compare_ssim as ssim
 import configparser
 
 from util import imshow, img2f, f2img, kspace_subsampling, Recoder, paramNumber, kspace_subsampling_pytorch, imgFromSubF_pytorch
-from network import getNet, getNet_2net, getLoss, getOptimizer
+from network import getNet, getLoss, getOptimizer
 from dataProcess import getDataloader
 
 class core():
@@ -42,11 +40,7 @@ class core():
         print("#Create network:"+self.config['general']['netType'])
         print("#Mode:"+self.mode)
         
-        if(self.mode=='2net'): 
-            self.net1 = getNet_2net(self.config['general']['netType'], 0).type(self.dtype)
-            self.net2 = getNet_2net(self.config['general']['netType'], 1).type(self.dtype)
-        else:
-            self.net = getNet(self.config['general']['netType']).type(self.dtype)
+        self.net = getNet(self.config['general']['netType']).type(self.dtype)
         if(self.needParallel):
             listDeviceStr = self.config['general']['device']
             listDevice = []
@@ -85,6 +79,10 @@ class core():
         #self.optimizer = getOptimizer(self.net.parameters(), self.config['train']['optimizer'], self.LR)
         if(self.config['train']['optimizer'] == 'Adam_wd'):
             self.weightDecay = float(self.config['train']['weightDecay'])
+        elif(self.config['train']['optimizer'] == 'Adam_DC_CNN'):
+            self.weightDecay = 0.0000001
+        elif(self.config['train']['optimizer'] == 'Adam_RDN'):
+            self.weightDecay = 0.0001
         else:
             self.weightDecay = 0
         print('#Optimizer: '+self.config['train']['optimizer']+' LR = %.2e weightDecay = %.2e'%(self.LR,self.weightDecay))
@@ -93,15 +91,8 @@ class core():
     def train(self, epoch = 0, listTarget = [0,1], forwardStage = 1, need_evaluate = True):
         if(epoch == 0):
             epoch = self.epoch
-        if(self.mode == '2net'):
-            ltmp = []
-            for i in listTarget:
-                ltmp.append(self.net[i])
-            self.optimizer = getOptimizer(nn.ModuleList(ltmp).parameters(), self.config['train']['optimizer'], self.LR, self.weightDecay)
-            msg = "start training: listTarget "+str(listTarget)+", stage %d, epoch = %d"%(forwardStage,epoch)
-        else:
-            self.optimizer = getOptimizer(self.net.parameters(), self.config['train']['optimizer'], self.LR, self.weightDecay)
-            msg = "start training: epoch = %d"%(epoch)
+        self.optimizer = getOptimizer(self.net.parameters(), self.config['train']['optimizer'], self.LR, self.weightDecay)
+        msg = "start training: epoch = %d"%(epoch)
         self.record.log(msg)
         print(msg)
         for j in range(1,epoch + 1):
@@ -110,26 +101,12 @@ class core():
             total_loss = 0
             for mode, label, mask in self.trainloader:
                 self.optimizer.zero_grad()
-                #netInput = Variable(img).type(self.dtype)
                 netLabel = Variable(label).type(self.dtype)
                 mask_var = Variable(mask).type(self.dtype)
                 subF = kspace_subsampling_pytorch(netLabel,mask_var)
                 complexFlag = (mode[0] == 'complex')
                 netInput = imgFromSubF_pytorch(subF,complexFlag)
-
-                if(self.mode == 'inNetDC'):
-                    netOutput = self.net(netInput, subF, mask_var)
-                elif(self.mode == 'inNetDC_2out'):
-                    netOutput,netBeforeCor = self.net(netInput, subF, mask_var)
-                elif(self.mode == '2net'):
-                    netOutput = self.net[0](netInput)
-                    if(forwardStage>1):
-                        #netInput_curFrame = netInput[:,0:netLabel.shape[1]]
-                        #netInput_curFrame = subF
-                        netOutput = self.net[1](netOutput,subF,mask_var)
-                else:
-                    netOutput = self.net(netInput)
-                
+                netOutput = self.net(netInput, subF, mask_var)
                 loss = self.lossForward(netOutput,netLabel)
                 loss.backward()
                 total_loss = total_loss + loss.item()*label.shape[0]
@@ -156,13 +133,9 @@ class core():
     
     def test(self,mode,label,mask):
         y = label.numpy() 
-        #netInput = Variable(img).type(self.dtype)
         netLabel = Variable(label).type(self.dtype)
-        if(self.mode == 'normal'):
-            assert False, 'normal mode is abandoned'
-            # netInput = Variable(img).type(self.dtype)
-            # x = img.numpy()
-            # mask = mask.numpy()[0]
+        if(self.mode != 'inNetDC'):
+            assert False, 'only for inNetDC mode'
         else:
             mask_var = Variable(mask).type(self.dtype)
             subF = kspace_subsampling_pytorch(netLabel,mask_var)
@@ -171,62 +144,15 @@ class core():
             
         y=y[0]
             
-        if(self.mode == 'inNetDC'): 
-            netOutput = self.net(netInput, subF, mask_var)
-            loss = self.lossForward(netOutput,netLabel)
-            netOutput_np = netOutput.cpu().data.numpy()
-            img1 = netOutput_np[0,0:1].astype('float64')
-            if(netOutput_np.shape[1]==2):
-                netOutput_np = abs(netOutput_np[:,0:1]+netOutput_np[:,1:2]*1j)
-            img2 = netOutput_np[0].astype('float64')
-            y2 = y[0:1]
-        elif(self.mode == 'inNetDC_2out'): 
-            netOutput,netBeforeCor = self.net(netInput, subF, mask_var)
-            loss = self.lossForward(netOutput,netLabel)
-            netOutput_np = netOutput.cpu().data.numpy()
-            netBeforeCor_np = netBeforeCor.cpu().data.numpy()
-            if(netOutput_np.shape[1]==2):
-                netOutput_np = abs(netOutput_np[:,0:1]+netOutput_np[:,1:2]*1j)
-            if(netBeforeCor_np.shape[1]==2):
-                netBeforeCor_np = abs(netBeforeCor_np[:,0:1]+netBeforeCor_np[:,1:2]*1j)
-            img1 = netBeforeCor_np[0].astype('float64')
-            img2 = netOutput_np[0].astype('float64')
-            y2 = y[0:1]
-        elif(self.mode == '2net'):
-            netOutput = self.net1(netInput)
-            # if(netInput.shape[1]==3):
-            #     netInput_curFrame = netInput[:,1:2]
-            # else:
-            #     netInput_curFrame = netInput
-            #netInput_curFrame = subF
-            netCorrect = self.net2(netOutput,subF,mask_var)
-            loss = self.lossForward(netCorrect,netLabel)
-            netOutput_np = netOutput.cpu().data.numpy()
-            netCorrect_np = netCorrect.cpu().data.numpy()
-            if(netOutput_np.shape[1]==2):
-                netOutput_np = abs(netOutput_np[:,0:1]+netOutput_np[:,1:2]*1j)
-            if(netCorrect_np.shape[1]==2):
-                netCorrect_np = abs(netCorrect_np[:,0:1]+netCorrect_np[:,1:2]*1j)
-            img1 = netOutput_np[0].astype('float64')
-            img2 = netCorrect_np[0].astype('float64')
-            y2 = y[0:1]
-        else:
-            netOutput = self.net(netInput)
-            loss = self.lossForward(netOutput,netLabel)
-            netOutput_np = netOutput.cpu().data.numpy()[0]
-            img1 = netOutput_np.astype('float64')
-
-            y_f = img2f(netOutput_np)
-            if(x.shape[1]==3):
-                x_f = img2f(x[:,1,:,:])
-            else:
-                x_f = img2f(x[:,0])
-            y_f = y_f - y_f * mask
-            y_f = y_f + x_f * mask
-
-            img2 = np.abs(f2img(y_f)).astype('float64')
-            y2 = y
-            
+        netOutput = self.net(netInput, subF, mask_var)
+        loss = self.lossForward(netOutput,netLabel)
+        netOutput_np = netOutput.cpu().data.numpy()
+        img1 = netOutput_np[0,0:1].astype('float64')
+        if(netOutput_np.shape[1]==2):
+            netOutput_np = abs(netOutput_np[:,0:1]+netOutput_np[:,1:2]*1j)
+        img2 = netOutput_np[0].astype('float64')
+        y2 = y[0:1]
+    
         img1 = np.clip(img1,0,1)
         img2 = np.clip(img2,0,1)
         
@@ -250,7 +176,6 @@ class core():
         psnr2 = 0
         ssim1 = 0
         ssim2 = 0
-        # self.dataloaderCheck()
         for mode, label, mask in self.testloader:
             loss0,psnrA,psnrB,ssimA,ssimB = self.testValue(mode,label,mask)
             

@@ -1,4 +1,4 @@
-import core_ver2 as core
+import core as core
 import numpy as np
 import sys
 

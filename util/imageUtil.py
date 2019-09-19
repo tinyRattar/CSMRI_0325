@@ -5,7 +5,6 @@ import torch
 from PIL import Image
 
 def imshow(img,mode='pil',vmax=0,overlap=False):
-    #assert False, no more imshow
     if(mode == 'cv'):
         b,g,r = cv2.split(img)
         im_np = cv2.merge([r,g,b])
@@ -64,12 +63,10 @@ def kspace_subsampling(srcImg,offset = 0,mode="default",mi=None):
     mask = np.zeros_like(srcImg)
     if(mode == "default"):
         assert offset<4 , "offset out of range"
-        #mask = np.zeros((256,256))
         mask[offset::4,:] = 1
         mask[122:134,:] = 1
     elif(mode == "lattice8"):
         assert offset<8 , "offset out of range"
-        #mask = np.zeros((256,256))
         mask[offset::8,:] = 1
         mask[125:131,:] = 1
     elif(mode == "fakeRandom"):
@@ -87,12 +84,10 @@ def subsampling_mask(srcImg,offset=0, mode = "default", mi = None):
     mask = np.zeros_like(srcImg)
     if(mode == "default"):
         assert offset<4 , "offset out of range"
-        #mask = np.zeros((256,256))
         mask[offset::4,:] = 1
         mask[122:134,:] = 1
     elif(mode == "lattice8"):
         assert offset<8 , "offset out of range"
-        #mask = np.zeros((256,256))
         mask[offset::8,:] = 1
         mask[125:131,:] = 1
     elif(mode == "fakeRandom"):
@@ -112,7 +107,6 @@ def addZoomIn(img, x0 = 87, y0 = 135,offsetX=32,offsetY=0,scale=3,border = 0):
             im1[:,:,i] = img
     if(offsetY==0):
         offsetY = offsetX
-    #scale = 3
     imzoomin = im1[y0:y0+offsetY,x0:x0+offsetX]
     imzoomin = cv2.resize(imzoomin,((offsetY*scale,offsetX*scale)))
     cv2.rectangle(im1,(x0,y0),(x0+offsetX,y0+offsetY),(255,0,0),1)
@@ -178,21 +172,5 @@ def imgFromSubF_pytorch(subF,returnComplex=False):
     else:
         subIm = torch.sqrt(subIm[:,0:1]*subIm[:,0:1]+subIm[:,1:2]*subIm[:,1:2])
         return subIm
-
-def gaussianFilter(H,W,radius,highpass = True, needShift = True):
-    fmask = np.zeros((H,W))
-
-    for i in range(H):
-        for j in range(W):
-            D = np.sqrt((i-H/2)*(i-H/2)+(j-W/2)*(j-W/2));
-            if(highpass):
-                fmask[i,j] = 1 - np.exp(-D*D/2/(radius*radius))
-            else:
-                fmask[i,j] = np.exp(-D*D/2/(radius*radius))
-
-    if(needShift):
-        fmask = np.fft.fftshift(fmask)
-
-    return fmask
 
 

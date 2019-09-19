@@ -17,7 +17,6 @@ class vanillaCNN(nn.Module):
         return x2
 
 class fourConv(nn.Module):
-    #equal param number with denseBlock
     def __init__(self, dilate=False):
         super(fourConv, self).__init__()
         self.relu = nn.ReLU()
@@ -79,8 +78,10 @@ class CNN(nn.Module):
         self.block2.add_module("relu_s2", nn.ReLU())
         self.block2.add_module("conv_3", fourConv(dilationLayer))
         self.block2.add_module("conv_5", nn.Conv2d(16, 1, 1, padding=0))
+
+        self.DC = dataConsistencyLayer(isStatic = True)
         
-    def forward(self,x1):
+    def forward(self,x1,y,mask):
         x1 = self.block0(x1)
         x2 = self.block1(x1)
         x3 = self.down(x2)
@@ -93,6 +94,7 @@ class CNN(nn.Module):
         x8 = self.block2(x7)
         
         result = x8+x1[:,1:2,:,:]
+        result = self.DC(result,y,mask)
         
         return result
 

@@ -38,10 +38,8 @@ class RDN_recursionUnit(nn.Module):
         x2 = self.LRelu(x2)
         xt = x2
         for i in range(self.rTime):
-            #print("loop %d"%i)
-            #print(xt.size())
             x3 = self.dilateBlock(xt)
-            xt = x3+x2 # x_t+1
+            xt = x3+x2
         x4 = self.conv2(xt)
         x4 = self.LRelu(x4)
         x5 = x4+x1
@@ -51,38 +49,25 @@ class RDN_recursionUnit(nn.Module):
 class dataFidelityUnit(nn.Module):
     def __init__(self, initLamda = 10e6):
         super(dataFidelityUnit, self).__init__()
-        self.normalized = True #norm == 'ortho'
-        #self.lamda = Parameter(torch.Tensor(1))
-        #self.lamda.data.uniform_(0, 1)
-        #self.lamda.data = torch.Tensor([initLamda])
+        self.normalized = True
         self.lamda = initLamda
     
     def forward(self, xin, y, mask):
         # y: aliased image 
         # x1: reconstructed image
         # mask: sampling mask
-        iScale = self.lamda/(1+self.lamda)
-        #if(empty is None):
-        #    emptyImag = torch.zeros_like(xin)
         mask = mask.reshape(mask.shape[0],mask.shape[1],mask.shape[2],1)
         
-        #xin_c = torch.cat([xin,emptyImag],1)
-        #xGT_c = torch.cat([y,emptyImag],1)
         xin_c = xin
-        #xGT_c = y
-        
         xin_c = xin_c.permute(0,2,3,1)
-        #xGT_c = xGT_c.permute(0,2,3,1)
         
         xin_f = torch.fft(xin_c,2, normalized=self.normalized)
-        #xGT_f = torch.fft(xGT_c,2)
         xGT_f = y
         
         xout_f = xin_f + (- xin_f + xGT_f) * iScale * mask
 
         xout = torch.ifft(xout_f,2, normalized=self.normalized)
         xout = xout.permute(0,3,1,2)
-        #xout = xout[:,0:1]
         
         return xout
 
@@ -104,13 +89,10 @@ class RDN_complex(nn.Module):
         self.layerList = nn.ModuleList(templayerList)
    
     def forward(self, x1, y, mask):
-        #y = x1
         xt = x1
         flag = True
         for layer in self.layerList:
-            #print("***block ***")
             if(flag):
-                #print(xt.size())
                 xt = layer(xt)
                 flag = False
             else:

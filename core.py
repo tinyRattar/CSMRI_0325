@@ -39,23 +39,21 @@ class core():
         print("#Result Path:"+self.config['general']['path'])
         print("#Create network:"+self.config['general']['netType'])
         print("#Mode:"+self.mode)
+
+        listDeviceStr = self.config['general']['device']
+        listDevice = []
+        for i in range(len(listDeviceStr)):
+            if(listDeviceStr[i] == '1'):
+                listDevice.append(str(i))
+            devicesStr=','.join(listDevice)
+        os.environ["CUDA_VISIBLE_DEVICES"] = devicesStr
         
         self.net = getNet(self.config['general']['netType']).type(self.dtype)
+        
+        assert len(listDevice) > 0,"No device is selected"
         if(self.needParallel):
-            listDeviceStr = self.config['general']['device']
-            listDevice = []
-            for i in range(len(listDeviceStr)):
-                if(listDeviceStr[i] == '1'):
-                    listDevice.append(i)
-            assert len(listDevice) > 0,"No device is selected"
             print('parallel device:'+str(listDevice))
-            if(self.mode=='2net'): 
-                self.net1 = nn.DataParallel(self.net1, device_ids = listDevice).type(self.dtype)
-                self.net2 = nn.DataParallel(self.net2, device_ids = listDevice).type(self.dtype)
-            else:
-                self.net = nn.DataParallel(self.net, device_ids = listDevice).type(self.dtype)
-        if(self.mode=='2net'): 
-            self.net = nn.ModuleList([self.net1,self.net2])
+            self.net = nn.DataParallel(self.net, device_ids = list(range(len(listDevice)))).type(self.dtype)
         self.lossForward = getLoss(self.config['general']['lossType']).type(self.dtype)
         paramNum = paramNumber(self.net)
         print("#Number of network parameters:%d"%paramNum)
@@ -156,8 +154,8 @@ class core():
         img1 = np.clip(img1,0,1)
         img2 = np.clip(img2,0,1)
         
-        psnrBefore = psnr(y2,img1)
-        psnrAfter = psnr(y2,img2)
+        psnrBefore = psnr(y2,img1,12)
+        psnrAfter = psnr(y2,img2,12)
         
         ssimBefore = ssim(y2[0],img1[0])
         ssimAfter = ssim(y2[0],img2[0])

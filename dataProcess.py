@@ -230,6 +230,8 @@ class FastMRI_1in1_noImg(data.Dataset):
             esc = np.array(f['reconstruction_esc'])
             for j in range(esc.shape[0]):
                 im_np = esc[j].astype(np.float32)
+                im_np = im_normalize(im_np)
+                im_np = im_np.clip(-6,6)
                 if(samplingMode == 'fakeRandom' or ('rand' in samplingMode)):
                     if(staticRandom):
                         randI = index

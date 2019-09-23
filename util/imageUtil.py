@@ -173,4 +173,10 @@ def imgFromSubF_pytorch(subF,returnComplex=False):
         subIm = torch.sqrt(subIm[:,0:1]*subIm[:,0:1]+subIm[:,1:2]*subIm[:,1:2])
         return subIm
 
+def im_normalize(im, eps=0.):
+    mean = im.mean()
+    std = im.std()
+
+    return (im - mean) / (std + eps)
+
 

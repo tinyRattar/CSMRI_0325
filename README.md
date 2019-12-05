@@ -60,8 +60,8 @@ Actucally, we implemented this part long time ago for training with trained reco
 Use the function [`loadCkpt`](https://github.com/tinyRattar/CSMRI_0325/blob/b5a8cec01b98a2be0c313dfe403488582c7fced2/core.py#L196) instead if you want to load the record. 
 For example:
 ```python
-c1 = core.core('PATH_TO_RESULT/config.ini',True)
-c1.loadCkpt(1000, True)
+c1 = core.core('PATH_TO_RESULT/config.ini', True) # True for not loading training dataset.
+c1.loadCkpt(1000, True) # True for checked weight.
 ```
 
 Notice that the final result will be saved permanently with additional `CHECKED_` prefix, so set `True` in the second parameter of loadCkpt().
@@ -69,6 +69,7 @@ Notice that the final result will be saved permanently with additional `CHECKED_
 
 ## How to Evaluate
 1. Donwload record folder from [Here](https://github.com/tinyRattar/CDDNwithTDC_storage/tree/master/result).
-2. use `c = core.core('FOLDER/config.ini', True)` to create a core instance with record configuration.
-3. use `c.loadCkpt(1000, True)` to load trained record.
-4. use `result = c.validation()` to evaluate trained model. (remember preparing the dataset at first)
+2. Put the folder in `result/` if necessary.
+3. use `c = core.core('FOLDER/config.ini', True)` to create a core instance with record configuration.
+4. use `c.loadCkpt(1000, True)` to load trained record.
+5. use `result = c.validation()` to evaluate trained model. (remember preparing the dataset at first)

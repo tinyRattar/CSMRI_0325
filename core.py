@@ -154,8 +154,8 @@ class core():
         img1 = np.clip(img1,0,1)
         img2 = np.clip(img2,0,1)
         
-        psnrBefore = psnr(y2,img1,12)
-        psnrAfter = psnr(y2,img2,12)
+        psnrBefore = psnr(y2,img1)
+        psnrAfter = psnr(y2,img2)
         
         ssimBefore = ssim(y2[0],img1[0])
         ssimAfter = ssim(y2[0],img2[0])

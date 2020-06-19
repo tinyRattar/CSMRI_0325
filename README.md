@@ -2,7 +2,7 @@
 This is the offical code for the paper 
 **Cascaded Dilated Dense Network with Two-step Data Consistency for MRI Reconstruction** published in NeruIPS 2019.
 
-The link of paper will be available later.
+[Here](http://papers.nips.cc/paper/8451-cascaded-dilated-dense-network-with-two-step-data-consistency-for-mri-reconstruction) is the Link.
 
 # Requirements
 - Python==3.6.5
@@ -63,6 +63,9 @@ For example:
 c1 = core.core('PATH_TO_RESULT/config.ini', True) # True for not loading training dataset.
 c1.loadCkpt(1000, True) # True for checked weight.
 ```
+Notice:
+FastMRI result didn't reached 1000 epoch as the network convergence within 300 epoch,
+so use `c1.loadCkpt(300, False)` instead if necessary.
 
 Notice that the final result will be saved permanently with additional `CHECKED_` prefix, so set `True` in the second parameter of loadCkpt().
 

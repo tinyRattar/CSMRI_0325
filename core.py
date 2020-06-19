@@ -63,6 +63,12 @@ class core():
         if(not isEvaluate):
             self.trainloader,self.trainsetSize = getDataloader(self.config['general']['dataType'],'train',self.batchSize,self.crossValid)
         self.testloader,self.testsetSize = getDataloader(self.config['general']['dataType'],'test',1,self.crossValid)
+        
+        self.isFastMRI = 'FastMRI' in self.config['general']['dataType']
+        if(self.isFastMRI):
+            print("data range for PSNR: 0~12 (estimated)")
+        else:
+            print("data range for PSNR: 0~1")
 
         if('FromLSF' in configPath):
             self.record = Recoder('resultFromLSF/' + self.config['general']['path'],self.saveEpoch*self.maxSaved)
@@ -154,8 +160,12 @@ class core():
         img1 = np.clip(img1,0,1)
         img2 = np.clip(img2,0,1)
         
-        psnrBefore = psnr(y2,img1)
-        psnrAfter = psnr(y2,img2)
+        if(self.isFastMRI):
+            psnrBefore = psnr(y2,img1,12)
+            psnrAfter = psnr(y2,img2,12)
+        else:
+            psnrBefore = psnr(y2,img1)
+            psnrAfter = psnr(y2,img2)
         
         ssimBefore = ssim(y2[0],img1[0])
         ssimAfter = ssim(y2[0],img2[0])

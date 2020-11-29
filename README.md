@@ -25,6 +25,8 @@ You can download the original data from [Here](http://www.cse.yorku.ca/~mridatas
 
 We convert the data into `.png` format. The png-format can be found from [Here](https://github.com/tinyRattar/CDDNwithTDC_storage/tree/master/data/pngFormat), and the convert code is [Here](https://github.com/tinyRattar/CDDNwithTDC_storage/blob/master/data/saveAsPng.m).
 
+It seems that the convert code will generate different result with current png data. Sorry but I have no idea. Just use converted data if you have no idea as well.
+
 Although there are 4480 frames, we only use 3300 frames(100 frames/patient). Preparing for training, you should:
 1. Download the png-format data.
 2. Put the data in `./data/cardiac_ktz/`.
